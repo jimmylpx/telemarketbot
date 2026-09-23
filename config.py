@@ -38,11 +38,8 @@ DB_PATH: str = _resolve_path("DB_PATH", "data/bot.db")
 
 # QRIS DANA Bisnis (Dinamis Otomatis)
 DANA_AUTO_CHECK: bool = _get_env("DANA_AUTO_CHECK", "true").lower() in ("true", "1", "yes")
-QRIS_BASE_PAYLOAD: str = _get_env(
-    "QRIS_BASE_PAYLOAD",
-    "00020101021126570011ID.DANA.WWW011893600915304267225902090426722590303UKE51440014ID.CO.QRIS.WWW0215ID10200329284720303UKE5204581353033605802ID5920WARUNG KEMIRI RAYA 16014Kota Palembang6105301156304D909"
-)
-MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "WARUNG KEMIRI RAYA 1")
+QRIS_BASE_PAYLOAD: str = _get_env("QRIS_BASE_PAYLOAD", "")
+MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "Merchant DANA")
 
 # Fallback info pembayaran manual jika diperlukan
 PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS DANA Bisnis")
@@ -84,6 +81,10 @@ ORDERS_DIR: str = _resolve_path("ORDERS_DIR", "orders")
 STOCKS_DIR: str = _resolve_path("STOCKS_DIR", "data/stocks")
 
 
+# CID & OCR Config
+CID_BASE_URL: str = _get_env("CID_BASE_URL", "https://cid.idlisensi.com")
+GEMINI_API_KEY: str = _get_env("GEMINI_API_KEY", "")
+GEMINI_OCR_MODEL: str = _get_env("GEMINI_OCR_MODEL", "gemini-3.5-flash-lite")
 
 
 # Admin Web Panel Config

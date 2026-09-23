@@ -127,13 +127,19 @@ INP_SHOP_NAME=${INP_SHOP_NAME:-IDLisensi}
 # Payload QRIS DANA Bisnis
 echo -e "\n${YELLOW}Petunjuk QRIS DANA Bisnis:${NC}"
 echo "Scan QRIS statis DANA Bisnis Anda menggunakan aplikasi scanner barcode,"
-echo "lalu copy teks hasilnya (biasanya berformat EMVCo, diawali 000201010211...)"
+echo "lalu copy teks hasilnya (format EMVCo, diawali 000201010211...)"
 read -rp "$(echo -e "${BOLD}4. Masukkan QRIS_BASE_PAYLOAD DANA Bisnis: ${NC}")" INP_QRIS_PAYLOAD
-INP_QRIS_PAYLOAD=${INP_QRIS_PAYLOAD:-00020101021126570011ID.DANA.WWW011893600915304267225902090426722590303UKE51440014ID.CO.QRIS.WWW0215ID10200329284720303UKE5204581353033605802ID5920WARUNG KEMIRI RAYA 16014Kota Palembang6105301156304D909}
+while [ -z "$INP_QRIS_PAYLOAD" ]; do
+    echo -e "${RED}QRIS_BASE_PAYLOAD tidak boleh kosong!${NC}"
+    read -rp "Masukkan QRIS_BASE_PAYLOAD: " INP_QRIS_PAYLOAD
+done
 
 # Nama Merchant
-read -rp "$(echo -e "${BOLD}5. Nama Merchant QRIS DANA (Default: WARUNG KEMIRI RAYA 1): ${NC}")" INP_MERCHANT_NAME
-INP_MERCHANT_NAME=${INP_MERCHANT_NAME:-"WARUNG KEMIRI RAYA 1"}
+read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS DANA (Sesuai aplikasi DANA): ${NC}")" INP_MERCHANT_NAME
+while [ -z "$INP_MERCHANT_NAME" ]; do
+    echo -e "${RED}Nama Merchant tidak boleh kosong!${NC}"
+    read -rp "Masukkan Nama Merchant: " INP_MERCHANT_NAME
+done
 
 # Password Admin Web Panel
 RANDOM_PASS=$(openssl rand -base64 6 | tr -dc 'a-zA-Z0-9')

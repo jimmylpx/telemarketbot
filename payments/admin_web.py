@@ -177,7 +177,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             <td class="action-btns">
                 <button class="btn btn-sm btn-info" onclick="openEditStock({p['id']}, '{html.escape(p['name'])}')">📝 Edit Stok TXT</button>
                 <button class="btn btn-sm btn-success" onclick="openRestock({p['id']}, '{html.escape(p['name'])}', {stk})">➕ Tambah</button>
-                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}', '{p_type}')">✏️ Edit</button>
+                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}')">✏️ Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="confirmDelete({p['id']}, '{html.escape(p['name'])}')">🗑️</button>
             </td>
         </tr>
@@ -349,6 +349,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             font-weight: 700;
         }}
         .badge-reg {{ background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; }}
+        .badge-office {{ background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #9333ea; }}
         .badge-stock-ok {{ background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }}
         .badge-stock-zero {{ background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }}
         .badge-pending {{ background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }}
@@ -503,7 +504,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nama Produk</label>
-                            <input type="text" name="name" placeholder="Contoh: Lisensi Windows 11 Pro Retail" required />
+                            <input type="text" name="name" placeholder="Contoh: Canva Premium 1 Bulan" required />
                         </div>
                         <div class="form-group">
                             <label>Harga (Rupiah)</label>
@@ -715,12 +716,11 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             updateCounter('restockText', 'restockCounter');
         }}
 
-        function openEdit(pid, name, price, desc, ptype) {{
+        function openEdit(pid, name, price, desc) {{
             document.getElementById('editPid').value = pid;
             document.getElementById('editName').value = name;
             document.getElementById('editPrice').value = price;
             document.getElementById('editDesc').value = desc;
-            document.getElementById('editType').value = ptype;
             document.getElementById('editModal').classList.add('active');
         }}
 
