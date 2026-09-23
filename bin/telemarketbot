@@ -131,6 +131,11 @@ cmd_status() {
         echo -e "• Public URL       : ${CYAN}${BOLD}${LIVE_URL}${NC}"
         echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}${ADMIN_PATH}${NC}"
         echo -e "• Webhook DANA     : ${GREEN}${BOLD}${LIVE_URL}${WEBHOOK_PATH}${NC}"
+        if echo "$LIVE_URL" | grep -q "trycloudflare.com"; then
+            echo -e "\n${YELLOW}Catatan Akses Quick Tunnel:${NC} Jika link di atas sulit dibuka pada browser/HP,"
+            echo -e "gunakan DNS Cloudflare (1.1.1.1) atau Google (8.8.8.8) di perangkat/WiFi Anda"
+            echo -e "karena sebagian ISP lokal di Indonesia memblokir atau lambat mempropagasi domain trycloudflare."
+        fi
     else
         echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu jalankan kembali.${NC}"
     fi
@@ -248,6 +253,9 @@ cmd_url() {
         echo -e "${BOLD}Public URL  :${NC} $LIVE_URL"
         echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL${ADMIN_PATH}"
         echo -e "${BOLD}Webhook DANA:${NC} $LIVE_URL${WEBHOOK_PATH}"
+        if echo "$LIVE_URL" | grep -q "trycloudflare.com"; then
+            echo -e "\n${YELLOW}Catatan Akses Quick Tunnel:${NC} Jika link di atas sulit dibuka, gunakan DNS Cloudflare (1.1.1.1) di perangkat/WiFi Anda."
+        fi
     else
         echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu ulangi.${NC}"
     fi

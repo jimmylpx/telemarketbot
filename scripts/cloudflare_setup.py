@@ -335,6 +335,10 @@ def switch_to_trycloudflare():
             pass
     print("[+] Mode berhasil diubah ke: Cloudflare Quick Tunnel (try.cloudflare.com)")
     print("[*] Layanan tunnel akan me-generate URL publik baru saat dimulai ulang.")
+    print("\nCatatan Akses Quick Tunnel:")
+    print("  Jika URL trycloudflare.com tidak bisa dibuka pada HP/browser Anda, gunakan")
+    print("  DNS 1.1.1.1 (Cloudflare / 1.1.1.1 WARP) atau 8.8.8.8 di perangkat/WiFi Anda")
+    print("  karena sebagian ISP lokal di Indonesia memblokir atau lambat mempropagasi domain trycloudflare.")
     return True
 
 
