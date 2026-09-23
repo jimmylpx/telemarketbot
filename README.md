@@ -52,7 +52,7 @@ bash install.sh
 Installer interaktif akan memandu Anda untuk mengisi:
 1. `TELEGRAM_BOT_TOKEN` (dari [@BotFather](https://t.me/BotFather))
 2. `ADMIN_USER_ID` (ID angka Telegram Anda dari [@userinfobot](https://t.me/userinfobot))
-3. `Nama Toko` (contoh: IDLisensi)
+3. `Nama Toko` (contoh: Toko Digital Saya)
 4. `QRIS_BASE_PAYLOAD` (hasil scan string QRIS DANA Bisnis Anda)
 5. `Nama Merchant DANA` (sesuai yang tertera di DANA)
 6. `Password Web Admin` (untuk login ke Admin Panel)

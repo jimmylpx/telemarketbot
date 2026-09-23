@@ -217,12 +217,15 @@ def main():
                     found_url = match.group(0)
                     if found_url != last_url:
                         last_url = found_url
-                        logger.info("==================================================")
-                        logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
+                        # Muat ulang env_vars agar path kustom terbaru terbaca
+                        fresh_env = load_env_vars()
                         admin_p = fresh_env.get("ADMIN_WEB_PATH", "/admin").strip()
                         if not admin_p.startswith("/"): admin_p = "/" + admin_p
                         hook_p = fresh_env.get("DANA_WEBHOOK_PATH", "/webhook/dana").strip()
                         if not hook_p.startswith("/"): hook_p = "/" + hook_p
+
+                        logger.info("==================================================")
+                        logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
                         logger.info("⚙️  Admin Panel: %s%s", found_url, admin_p)
                         logger.info("🔔 Webhook URL: %s%s", found_url, hook_p)
                         logger.info("==================================================")
@@ -237,8 +240,6 @@ def main():
                         update_env_public_url(found_url)
 
                         # 3. Notifikasi Telegram Admin
-                        # Muat ulang env_vars jika admin baru mengisi data
-                        fresh_env = load_env_vars()
                         t_token = fresh_env.get("TELEGRAM_BOT_TOKEN", bot_token)
                         t_admin = fresh_env.get("ADMIN_USER_ID", admin_id)
                         send_telegram_notification(t_token, t_admin, found_url, port, fresh_env)

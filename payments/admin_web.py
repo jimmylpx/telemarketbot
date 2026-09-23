@@ -72,7 +72,7 @@ LOGIN_HTML = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin - IDLisensi Bot</title>
+    <title>Login Admin</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -140,7 +140,7 @@ LOGIN_HTML = """<!DOCTYPE html>
 <body>
     <div class="login-card">
         <div class="logo">🔐</div>
-        <h1>Panel Admin IDLisensi</h1>
+        <h1>Panel Admin</h1>
         <p>Silakan masukkan password admin untuk mengakses pengelolaan bot.</p>
         __ALERT__
         <form method="POST" action="/admin/login">
@@ -234,7 +234,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin IDLisensi Bot</title>
+    <title>Panel Admin {config.SHOP_NAME}</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{

@@ -121,8 +121,11 @@ while [ -z "$INP_ADMIN_ID" ]; do
 done
 
 # Nama Toko
-read -rp "$(echo -e "${BOLD}3. Nama Toko (Default: IDLisensi): ${NC}")" INP_SHOP_NAME
-INP_SHOP_NAME=${INP_SHOP_NAME:-IDLisensi}
+read -rp "$(echo -e "${BOLD}3. Masukkan Nama Toko Anda: ${NC}")" INP_SHOP_NAME
+while [ -z "$INP_SHOP_NAME" ]; do
+    echo -e "${RED}Nama Toko tidak boleh kosong!${NC}"
+    read -rp "Masukkan Nama Toko Anda: " INP_SHOP_NAME
+done
 
 # Payload QRIS DANA Bisnis
 echo -e "\n${YELLOW}Petunjuk QRIS DANA Bisnis:${NC}"
@@ -314,18 +317,37 @@ $SUDO cp "$PROJECT_DIR/bin/telemarketbot" /usr/local/bin/telemarketbot
 $SUDO chmod +x /usr/local/bin/telemarketbot
 echo -e "${GREEN}[+] Perintah CLI 'telemarketbot' berhasil dipasang di /usr/local/bin/telemarketbot${NC}"
 
+LIVE_TUNNEL_URL=""
+if [ "$USE_CF" = "true" ]; then
+    echo -e "\n${BLUE}[*] Menghubungkan ke Cloudflare Quick Tunnel (menunggu link publik)...${NC}"
+    for i in {1..15}; do
+        if [ -f "$PROJECT_DIR/.current_tunnel_url" ]; then
+            LIVE_TUNNEL_URL=$(cat "$PROJECT_DIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+            if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
+                break
+            fi
+        fi
+        sleep 1
+    done
+fi
+
 echo -e "\n${GREEN}${BOLD}=================================================================="
 echo "                   INSTALASI SELESAI & BERHASIL! 🚀"
 echo "==================================================================${NC}"
 echo -e "Bot Telegram: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
 if [ "$USE_CF" = "true" ]; then
     echo -e "Cloudflare Tunnel: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
-    echo -e "${YELLOW}URL Quick Tunnel sedang dibuat dan otomatis dikirimkan ke Telegram Admin Anda!${NC}"
 fi
 echo -e "\n${BOLD}Informasi Akses & Kredensial:${NC}"
-echo -e "• Web Admin Panel   : ${CYAN}${INP_ADMIN_PATH}${NC}"
+if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
+    echo -e "• Public URL        : ${CYAN}${BOLD}${LIVE_TUNNEL_URL}${NC}"
+    echo -e "• Web Admin Panel   : ${YELLOW}${BOLD}${LIVE_TUNNEL_URL}${INP_ADMIN_PATH}${NC}"
+    echo -e "• Webhook DANA      : ${GREEN}${BOLD}${LIVE_TUNNEL_URL}${INP_WEBHOOK_PATH}${NC}"
+else
+    echo -e "• Web Admin Panel   : ${CYAN}${INP_ADMIN_PATH}${NC}"
+    echo -e "• Webhook DANA Path : ${CYAN}${INP_WEBHOOK_PATH}${NC}"
+fi
 echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
-echo -e "• Webhook DANA Path : ${CYAN}${INP_WEBHOOK_PATH}${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 
 echo -e "\n${BOLD}🚀 Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"

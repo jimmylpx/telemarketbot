@@ -207,12 +207,12 @@ cmd_url() {
         *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
     esac
 
-    if [ -n "$LIVE_URL" ]; then
+    if [ -n "$LIVE_URL" ] && [ "$LIVE_URL" != "https://try.cloudflare.com" ]; then
         echo -e "${BOLD}Public URL  :${NC} $LIVE_URL"
         echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL${ADMIN_PATH}"
         echo -e "${BOLD}Webhook DANA:${NC} $LIVE_URL${WEBHOOK_PATH}"
     else
-        echo -e "${RED}URL belum tersedia. Cek dengan 'telemarketbot status'${NC}"
+        echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu ulangi.${NC}"
     fi
 }
 
