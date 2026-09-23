@@ -1,5 +1,16 @@
 # TeleMarketBot
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/License-MIT-2ea44f?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/Tunnel-Cloudflare%20Quick%20Tunnel-F38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare">
+  <img src="https://img.shields.io/badge/Payment-QRIS%20DANA%20Bisnis-118EEA?style=flat-square" alt="DANA">
+  <img src="https://img.shields.io/badge/Products-Per%20Line%20Digital-success?style=flat-square" alt="Products">
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=flat-square" alt="Status">
+</p>
+
+---
+
 Bot Telegram otomatis untuk penjualan produk digital per baris (link, akun, voucher, token, lisensi) yang terintegrasi langsung dengan QRIS Dinamis DANA Bisnis dan web admin panel.
 
 Mendukung instalasi satu perintah untuk VPS Linux (Debian, Ubuntu, CentOS) dengan opsi Cloudflare Quick Tunnel (`try.cloudflare.com`) gratis tanpa memerlukan IP publik statis atau konfigurasi domain.
