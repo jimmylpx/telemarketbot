@@ -1,4 +1,4 @@
-"""Background jobs: auto-expire pending orders & KlikQRIS poller."""
+"""Background jobs: auto-expire pending orders."""
 
 from __future__ import annotations
 
@@ -8,53 +8,8 @@ from telegram.ext import ContextTypes
 
 import config
 import db
-from payments import klikqris
 
 logger = logging.getLogger(__name__)
-
-POLL_INTERVAL = 10  # detik
-
-
-async def check_payments(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """JobQueue callback: cek semua order QRIS KlikQRIS yang masih pending."""
-    if not klikqris.is_active():
-        return
-
-    try:
-        orders = db.get_pending_qris_orders()
-    except Exception as e:
-        logger.exception("Gagal ambil pending orders: %s", e)
-        return
-
-    if not orders:
-        return
-
-    klik = klikqris.get()
-    bot = context.bot
-
-    for order in orders:
-        order_id = order["id"]
-        try:
-            res = await klik.check_status(order_id)
-            payment_status = (res.get("data") or {}).get("payment_status", "").lower()
-            if payment_status == "paid":
-                db.update_order_status(order_id, "paid")
-                logger.info("Order %s lunas via KlikQRIS!", order_id)
-                await bot.send_message(
-                    chat_id=order["user_id"],
-                    text=f"✅ Pembayaran untuk order *#{order_id}* berhasil diterima! Pesanan Anda segera diproses.",
-                    parse_mode=ParseMode.MARKDOWN,
-                )
-            elif payment_status in ("expired", "failed"):
-                db.update_order_status(order_id, "cancelled")
-                logger.info("Order %s %s via KlikQRIS", order_id, payment_status)
-                await bot.send_message(
-                    chat_id=order["user_id"],
-                    text=f"❌ Order *#{order_id}* dibatalkan karena waktu pembayaran telah habis.",
-                    parse_mode=ParseMode.MARKDOWN,
-                )
-        except Exception as exc:
-            logger.warning("Error check_status order %s: %s", order_id, exc)
 
 
 async def cleanup_expired_orders(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -86,5 +41,3 @@ async def cleanup_expired_orders(context: ContextTypes.DEFAULT_TYPE) -> None:
                 pass
     except Exception as e:
         logger.error("Error menjalankan cleanup_expired_orders: %s", e)
-
-

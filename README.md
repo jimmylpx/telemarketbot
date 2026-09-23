@@ -152,7 +152,6 @@ TeleMarketBot dilengkapi perintah CLI global `telemarketbot` yang dapat dipanggi
 │   ├── dana_webhook.py        # Receiver webhook notifikasi DANA dari MacroDroid
 │   ├── delivery.py            # Auto-delivery stok produk ke pembeli
 │   ├── qris_generator.py      # Generator QRIS DANA Dinamis (EMVCo CRC-16)
-│   └── klikqris.py            # Gateway alternatif KlikQRIS (opsional)
 │
 ├── scripts/                   # Helper Scripts
 │   └── tunnel_manager.py      # Cloudflare Quick Tunnel supervisor & Telegram notifier

@@ -10,7 +10,6 @@ import config
 import db
 from handlers import start, product, myorders, admin
 from jobs import poller
-from payments import klikqris
 from payments.dana_webhook import create_webhook_app
 
 logger = logging.getLogger(__name__)
@@ -66,16 +65,7 @@ def main():
         web.run_app(webapp, host=config.WEBHOOK_HOST, port=config.WEBHOOK_PORT)
         return
 
-    # KlikQRIS (opsional)
-    if config.KLIKQRIS_ACTIVE:
-        klikqris.init(
-            api_key=config.KLIKQRIS_API_KEY,
-            merchant_id=config.KLIKQRIS_MERCHANT_ID,
-            mode=config.KLIKQRIS_MODE,
-        )
-        logger.info("KlikQRIS aktif (mode %s)", config.KLIKQRIS_MODE)
-    else:
-        logger.info("KlikQRIS non-aktif. Menggunakan DANA Notification Auto-check.")
+
 
     app = (
         ApplicationBuilder()
@@ -101,15 +91,7 @@ def main():
         )
         logger.info("Job auto-cancel order kadaluarsa aktif (interval 60 detik)")
 
-        # 2) KlikQRIS poller jika aktif
-        if config.KLIKQRIS_ACTIVE:
-            app.job_queue.run_repeating(
-                poller.check_payments,
-                interval=poller.POLL_INTERVAL,
-                first=poller.POLL_INTERVAL,
-                name="klikqris_poller",
-            )
-            logger.info("Job poller KlikQRIS aktif")
+
 
     logger.info("Bot Telegram mulai polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

@@ -68,11 +68,7 @@ def get_public_url() -> str:
     return PUBLIC_URL
 
 
-# KlikQRIS (opsional)
-KLIKQRIS_API_KEY: str = _get_env("KLIKQRIS_API_KEY", "")
-KLIKQRIS_MERCHANT_ID: str = _get_env("KLIKQRIS_MERCHANT_ID", "")
-KLIKQRIS_MODE: str = _get_env("KLIKQRIS_MODE", "sandbox").lower()
-KLIKQRIS_ACTIVE: bool = bool(KLIKQRIS_API_KEY) and bool(KLIKQRIS_MERCHANT_ID)
+
 
 
 # Auto-Delivery Stock Config
