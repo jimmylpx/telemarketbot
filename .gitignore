@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+.venv
+
+# Database & SQLite files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Order records & License files (SENSITIVE - Do NOT commit!)
+orders/
+*.txt
+!requirements.txt
+
+# Cloudflared binaries & runtime
+cloudflared
+cloudflared-linux-*
+.cloudflared/
+
+# Logs
+*.log
+logs/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System
+.DS_Store
+Thumbs.db
