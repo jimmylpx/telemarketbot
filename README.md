@@ -115,6 +115,7 @@ Gunakan perintah `telemarketbot` di terminal untuk mengelola server:
 | `telemarketbot start` | Menjalankan bot dan tunnel |
 | `telemarketbot stop` | Menghentikan bot dan tunnel |
 | `telemarketbot url` | Menampilkan URL publik dan admin panel saat ini |
+| `telemarketbot domain` | Mengatur dan beralih mode tunnel (TryCloudflare <-> Domain Sendiri via dash.cloudflare.com) |
 
 Layanan telah dikonfigurasi dengan auto-start saat boot (`systemd enabled`).
 

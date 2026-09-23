@@ -60,6 +60,18 @@ cmd_status() {
         else
             echo -e "● Cloudflare Tunnel: ${RED}${BOLD}[INACTIVE / OFFLINE]${NC}"
         fi
+        MODE="trycloudflare"
+        if [ -f "$WORKDIR/.env" ]; then
+            ENV_MODE=$(grep "^TUNNEL_MODE=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+            if [ -n "$ENV_MODE" ]; then
+                MODE="$ENV_MODE"
+            fi
+        fi
+        if [ "$MODE" = "custom_domain" ]; then
+            echo -e "● Tunnel Mode      : ${GREEN}${BOLD}Named Tunnel (Domain Sendiri)${NC}"
+        else
+            echo -e "● Tunnel Mode      : ${BLUE}Quick Tunnel (try.cloudflare.com)${NC}"
+        fi
     else
         echo -e "● Cloudflare Tunnel: ${YELLOW}[TIDAK DIAKTIFKAN / CUSTOM DOMAIN]${NC}"
     fi
@@ -241,6 +253,23 @@ cmd_url() {
     fi
 }
 
+cmd_domain() {
+    if [ ! -f "$WORKDIR/scripts/cloudflare_setup.py" ]; then
+        echo -e "${RED}[!] Skrip cloudflare_setup.py tidak ditemukan di $WORKDIR/scripts.${NC}"
+        exit 1
+    fi
+    PYTHON_BIN="python3"
+    if [ -f "$WORKDIR/venv/bin/python" ]; then
+        PYTHON_BIN="$WORKDIR/venv/bin/python"
+    fi
+    $PYTHON_BIN "$WORKDIR/scripts/cloudflare_setup.py" menu
+    RET=$?
+    if [ $RET -eq 0 ]; then
+        echo -e "\n${BLUE}[*] Menerapkan konfigurasi mode domain/tunnel...${NC}"
+        cmd_restart
+    fi
+}
+
 cmd_help() {
     echo -e "${CYAN}${BOLD}TeleMarketBot CLI Management Tool${NC}"
     echo -e "Penggunaan: ${BOLD}telemarketbot <perintah>${NC}\n"
@@ -250,7 +279,8 @@ cmd_help() {
     echo -e "  ${GREEN}restart${NC}   Restart server bot & cloudflare tunnel"
     echo -e "  ${GREEN}start${NC}     Jalankan bot & tunnel (sekaligus aktifkan auto-start saat reboot)"
     echo -e "  ${GREEN}stop${NC}      Hentikan server bot & tunnel"
-    echo -e "  ${GREEN}url${NC}       Cetak link live publik & panel admin saat ini"
+    echo -e "  ${GREEN}url${NC}       Cetak link live publik & panel admin saat ini
+  ${GREEN}domain${NC}    Pengaturan & beralih mode domain/tunnel (TryCloudflare <-> Domain Sendiri)"
     echo -e "  ${GREEN}help${NC}      Tampilkan bantuan ini"
 }
 
@@ -273,6 +303,9 @@ case "$1" in
         ;;
     url)
         cmd_url
+        ;;
+    domain|mode|tunnel)
+        cmd_domain
         ;;
     help|--help|-h|"")
         if [ -z "$1" ]; then

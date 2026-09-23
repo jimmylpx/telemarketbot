@@ -179,17 +179,17 @@ INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$RANDOM_SECRET}
 
 # Pilihan Tunnel
 echo -e "\n${BOLD}11. Pilih Metode Akses Publik / Online Webhook:${NC}"
-echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Rekomendasi - Gratis, Tanpa Domain]"
-echo "  2) Custom Domain / Reverse Proxy Sendiri (Pangolin, Nginx, dll.)"
+echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Gratis, Otomatis, Tanpa Domain]"
+echo "  2) Cloudflare Named Tunnel dengan Domain Sendiri (dash.cloudflare.com)"
 read -rp "Pilihan Anda (1/2, default: 1): " INP_TUNNEL_CHOICE
 INP_TUNNEL_CHOICE=${INP_TUNNEL_CHOICE:-1}
 
 USE_CF="true"
 INP_PUBLIC_URL="https://try.cloudflare.com"
+TUNNEL_MODE="trycloudflare"
 
 if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
-    USE_CF="false"
-    read -rp "Masukkan URL Publik Anda (contoh: https://toko.domainanda.com): " INP_PUBLIC_URL
+    TUNNEL_MODE="custom_domain"
 fi
 
 # 6. Tulis file .env
@@ -214,6 +214,7 @@ WEBHOOK_PORT=${INP_WEBHOOK_PORT}
 WEBHOOK_SECRET=${INP_WEBHOOK_SECRET}
 PUBLIC_URL=${INP_PUBLIC_URL}
 USE_CLOUDFLARE_TUNNEL=${USE_CF}
+TUNNEL_MODE=${TUNNEL_MODE}
 ORDER_EXPIRE_MINUTES=30
 
 # Web Admin Panel (/admin)
@@ -248,6 +249,11 @@ echo -e "${BLUE}[*] Memasang dependensi dari requirements.txt...${NC}"
 echo -e "\n${BLUE}[*] Menginisialisasi Database SQLite...${NC}"
 "$PROJECT_DIR/venv/bin/python" -c "import db; db.init_db('data/bot.db')"
 echo -e "${GREEN}[+] Database SQLite siap: data/bot.db${NC}"
+
+if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
+    echo -e "\n${BLUE}[*] Memulai konfigurasi Cloudflare Named Tunnel dengan Domain Sendiri...${NC}"
+    "$PROJECT_DIR/venv/bin/python" "$PROJECT_DIR/scripts/cloudflare_setup.py" setup
+fi
 
 # 10. Konfigurasi Systemd Service
 echo -e "\n${BLUE}[*] Mengonfigurasi systemd service...${NC}"

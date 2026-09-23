@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
-Cloudflare Quick Tunnel Manager (try.cloudflare.com)
-Otomatis menjalankan tunnel, mengekstrak URL publik ephemeral,
-mengupdate .env / .current_tunnel_url, dan mengirim notifikasi link ke Telegram Admin.
+Cloudflare Tunnel Manager for TeleMarketBot
+Mendukung 2 mode operasi:
+1. Cloudflare Quick Tunnel (try.cloudflare.com) - URL acak/ephemeral
+2. Cloudflare Named Tunnel (Domain Sendiri via dash.cloudflare.com) - URL permanen
+Otomatis menjalankan tunnel, menjaga koneksi, mengupdate status URL,
+dan mengirim notifikasi link ke Telegram Admin.
 """
 
 import os
@@ -72,7 +75,7 @@ def update_env_public_url(new_url: str):
         logger.error("Gagal memperbarui PUBLIC_URL di .env: %s", exc)
 
 
-def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int, env_vars: dict = None):
+def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int, env_vars: dict = None, mode: str = "quick"):
     if env_vars is None:
         env_vars = load_env_vars()
     """Mengirim pesan notifikasi link live tunnel ke admin via Telegram Bot API."""
@@ -88,8 +91,10 @@ def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, p
     admin_link = f"{tunnel_url}{admin_path}"
     webhook_link = f"{tunnel_url}{webhook_path}"
 
+    title = "🌐 *Cloudflare Tunnel (Domain Sendiri) Online!*" if mode == "custom_domain" else "🌐 *Cloudflare Quick Tunnel Online!*"
+
     msg = (
-        "🌐 *Cloudflare Quick Tunnel Online!*\n\n"
+        f"{title}\n\n"
         f"🔗 *Public URL:* `{tunnel_url}`\n"
         f"⚙️ *Admin Web Panel:* `{admin_link}`\n"
         f"🔔 *Webhook DANA (MacroDroid):*\n`{webhook_link}`\n\n"
@@ -129,12 +134,10 @@ def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, p
 
 def find_cloudflared_binary() -> Optional[str]:
     """Mencari lokasi binary cloudflared."""
-    # 1. Cek di PATH
     path_bin = shutil_which("cloudflared")
     if path_bin:
         return path_bin
 
-    # 2. Cek path standar Linux / lokal
     candidates = [
         "/usr/local/bin/cloudflared",
         "/usr/bin/cloudflared",
@@ -158,11 +161,13 @@ def main():
             TUNNEL_URL_FILE.unlink()
         except Exception:
             pass
-    env_vars = load_env_vars()
 
+    env_vars = load_env_vars()
     port = int(env_vars.get("WEBHOOK_PORT", 8085))
     bot_token = env_vars.get("TELEGRAM_BOT_TOKEN", "")
     admin_id = env_vars.get("ADMIN_USER_ID", "")
+    tunnel_mode = env_vars.get("TUNNEL_MODE", "trycloudflare").strip().lower()
+    tunnel_token = env_vars.get("CLOUDFLARE_TUNNEL_TOKEN", "").strip()
 
     cf_bin = find_cloudflared_binary()
     if not cf_bin:
@@ -175,7 +180,21 @@ def main():
     logger.info("Menggunakan binary cloudflared: %s", cf_bin)
     logger.info("Target reverse-proxy: http://127.0.0.1:%d", port)
 
-    cmd = [cf_bin, "tunnel", "--url", f"http://127.0.0.1:{port}"]
+    # Menentukan mode dan perintah eksekusi
+    if tunnel_mode == "custom_domain" and tunnel_token:
+        logger.info("Mode: Cloudflare Named Tunnel (Domain Sendiri)")
+        cmd = [cf_bin, "tunnel", "run", "--token", tunnel_token]
+        custom_public_url = env_vars.get("PUBLIC_URL", "")
+        if custom_public_url:
+            try:
+                TUNNEL_URL_FILE.write_text(custom_public_url, encoding="utf-8")
+                logger.info("URL Publik permanen diset: %s", custom_public_url)
+            except Exception as e:
+                logger.warning("Gagal menulis file tunnel URL: %s", e)
+            send_telegram_notification(bot_token, admin_id, custom_public_url, port, env_vars, mode="custom_domain")
+    else:
+        logger.info("Mode: Cloudflare Quick Tunnel (try.cloudflare.com)")
+        cmd = [cf_bin, "tunnel", "--url", f"http://127.0.0.1:{port}"]
 
     current_process = None
 
@@ -201,7 +220,7 @@ def main():
 
     while True:
         try:
-            logger.info("Menjalankan: %s", " ".join(cmd))
+            logger.info("Menjalankan: %s", " ".join(cmd[:4]) + (" [TOKEN_HIDDEN]" if len(cmd) > 4 else ""))
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -216,43 +235,60 @@ def main():
                 if not line_str:
                     continue
 
-                # Cek apakah baris mengandung URL trycloudflare.com
-                match = CF_URL_REGEX.search(line_str)
-                if match:
-                    found_url = match.group(0)
-                    if found_url != last_url:
-                        last_url = found_url
-                        # Muat ulang env_vars agar path kustom terbaru terbaca
-                        fresh_env = load_env_vars()
-                        admin_p = fresh_env.get("ADMIN_WEB_PATH", "/admin").strip()
-                        if not admin_p.startswith("/"): admin_p = "/" + admin_p
-                        hook_p = fresh_env.get("DANA_WEBHOOK_PATH", "/webhook/dana").strip()
-                        if not hook_p.startswith("/"): hook_p = "/" + hook_p
+                # Untuk Quick Tunnel, deteksi URL trycloudflare.com
+                if tunnel_mode != "custom_domain" or not tunnel_token:
+                    match = CF_URL_REGEX.search(line_str)
+                    if match:
+                        found_url = match.group(0)
+                        if found_url != last_url:
+                            last_url = found_url
+                            fresh_env = load_env_vars()
+                            admin_p = fresh_env.get("ADMIN_WEB_PATH", "/admin").strip()
+                            if not admin_p.startswith("/"): admin_p = "/" + admin_p
+                            hook_p = fresh_env.get("DANA_WEBHOOK_PATH", "/webhook/dana").strip()
+                            if not hook_p.startswith("/"): hook_p = "/" + hook_p
 
-                        logger.info("==================================================")
-                        logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
-                        logger.info("⚙️  Admin Panel: %s%s", found_url, admin_p)
-                        logger.info("🔔 Webhook URL: %s%s", found_url, hook_p)
-                        logger.info("==================================================")
+                            logger.info("==================================================")
+                            logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
+                            logger.info("⚙️  Admin Panel: %s%s", found_url, admin_p)
+                            logger.info("🔔 Webhook URL: %s%s", found_url, hook_p)
+                            logger.info("==================================================")
 
-                        # 1. Simpan ke .current_tunnel_url
+                            try:
+                                TUNNEL_URL_FILE.write_text(found_url, encoding="utf-8")
+                            except Exception as exc:
+                                logger.error("Gagal menulis file tunnel URL: %s", exc)
+
+                            update_env_public_url(found_url)
+
+                            t_token = fresh_env.get("TELEGRAM_BOT_TOKEN", bot_token)
+                            t_admin = fresh_env.get("ADMIN_USER_ID", admin_id)
+                            send_telegram_notification(t_token, t_admin, found_url, port, fresh_env, mode="quick")
+                else:
+                    # Di Named Tunnel, pastikan file tunnel URL tetap ada jika process berjalan
+                    if not TUNNEL_URL_FILE.exists() and custom_public_url:
                         try:
-                            TUNNEL_URL_FILE.write_text(found_url, encoding="utf-8")
-                        except Exception as exc:
-                            logger.error("Gagal menulis file tunnel URL: %s", exc)
-
-                        # 2. Update .env
-                        update_env_public_url(found_url)
-
-                        # 3. Notifikasi Telegram Admin
-                        t_token = fresh_env.get("TELEGRAM_BOT_TOKEN", bot_token)
-                        t_admin = fresh_env.get("ADMIN_USER_ID", admin_id)
-                        send_telegram_notification(t_token, t_admin, found_url, port, fresh_env)
+                            TUNNEL_URL_FILE.write_text(custom_public_url, encoding="utf-8")
+                        except Exception:
+                            pass
 
             proc.wait()
             ret_code = proc.returncode
             logger.warning("Proses cloudflared terhenti (return code %d). Mencoba restart dalam 5 detik...", ret_code)
             time.sleep(5)
+
+            # Cek apakah konfigurasi di .env berubah saat restart loop
+            env_vars = load_env_vars()
+            new_mode = env_vars.get("TUNNEL_MODE", "trycloudflare").strip().lower()
+            new_token = env_vars.get("CLOUDFLARE_TUNNEL_TOKEN", "").strip()
+            if new_mode != tunnel_mode or new_token != tunnel_token:
+                tunnel_mode = new_mode
+                tunnel_token = new_token
+                if tunnel_mode == "custom_domain" and tunnel_token:
+                    cmd = [cf_bin, "tunnel", "run", "--token", tunnel_token]
+                    custom_public_url = env_vars.get("PUBLIC_URL", "")
+                else:
+                    cmd = [cf_bin, "tunnel", "--url", f"http://127.0.0.1:{port}"]
 
         except Exception as exc:
             logger.error("Terjadi kesalahan pada loop tunnel: %s. Restart dalam 5 detik...", exc)
