@@ -9,13 +9,13 @@
   <img src="https://img.shields.io/badge/License-MIT-2ea44f?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/Tunnel-Cloudflare%20Quick%20Tunnel-F38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare">
   <img src="https://img.shields.io/badge/Payment-QRIS%20DANA%20Bisnis-118EEA?style=flat-square" alt="DANA">
-  <img src="https://img.shields.io/badge/AI%20OCR-Gemini%20Flash-4285F4?style=flat-square&logo=google&logoColor=white" alt="Gemini">
+  <img src="https://img.shields.io/badge/Products-Per%20Line%20Digital-success?style=flat-square" alt="Products">
   <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=flat-square" alt="Status">
 </p>
 
 ---
 
-Solusi self-hosted lengkap untuk bot Telegram jualan digital otomatis (lisensi software, akun, token, voucher) yang terintegrasi langsung dengan **QRIS DANA Bisnis (Dinamis Otomatis)**, **Web Admin Panel**, pengiriman stok otomatis (**Instant Auto-Delivery**), dan fitur aktivasi lisensi Windows/Office via **CID & AI OCR Gemini** (`/cid`).
+Solusi self-hosted lengkap untuk bot Telegram jualan produk digital berbasis baris teks otomatis (seperti **link Jio**, akun streaming/login, token, voucher, cookies, lisensi). Terintegrasi langsung dengan **QRIS Dinamis DANA Bisnis**, **Web Admin Panel**, dan **Instant Auto-Delivery stok**.
 
 Dapat diinstal di VPS Linux manapun secara instan menggunakan **One-Command Installer** dengan dukungan **Cloudflare Quick Tunnel (`try.cloudflare.com`)** gratis tanpa perlu membeli domain atau konfigurasi port-forwarding!
 
@@ -27,9 +27,8 @@ Dapat diinstal di VPS Linux manapun secara instan menggunakan **One-Command Inst
 - 🌐 **Cloudflare Quick Tunnel (`try.cloudflare.com`):** Webhook dan Admin Panel otomatis online ke publik dengan HTTPS resmi secara gratis tanpa perlu menyewa IP publik atau membeli domain. Link live otomatis dikirimkan ke Telegram Admin setiap kali server startup.
 - 💳 **QRIS Dinamis DANA Bisnis (Auto EMVCo):** Bot secara otomatis menyuntikkan nominal tagihan ke QRIS statis DANA Bisnis menggunakan kalkulasi checksum CRC-16 standar Bank Indonesia. Pembeli tinggal scan tanpa perlu ketik nominal manual!
 - 🔔 **Auto-Check Pembayaran (MacroDroid Webhook):** Setiap ada uang masuk ke aplikasi DANA Bisnis di HP Anda, MacroDroid langsung meneruskan notifikasi ke Webhook server. Pesanan diverifikasi lunas dalam hitungan detik.
-- 📦 **Instant Auto-Delivery Stok:** Setelah pembayaran diverifikasi, bot langsung memotong stok dari file `.txt` dan mengirimkannya ke chat pembeli beserta tutorial aktivasinya secara otomatis.
+- 📦 **Instant Auto-Delivery (1 Baris = 1 Stok):** Setiap baris di file stok merepresentasikan 1 item produk (misal 1 link Jio atau 1 akun). Setelah pembayaran terverifikasi lunas, bot langsung memotong stok baris tersebut dan mengirimkannya ke chat pembeli secara realtime.
 - 🛠️ **Web Admin Panel (`/admin`):** Dashboard manajemen responsif untuk melihat statistik penjualan, riwayat pesanan pelanggan, menambah/mengedit produk, dan mengedit file stok `.txt` langsung via textarea web.
-- 🔑 **Fitur CID & AI OCR Gemini (`/cid`):** Pembeli Office/Windows dapat memfoto layar Confirmation ID / Installation ID (IID Step 2). Bot menggunakan Google Gemini Flash AI untuk membaca 63 digit angka OCR dan mengambil Confirmation ID (CID) secara otomatis dari backend.
 - 🔒 **Aman & Terisolasi:** URL root (`/`) diproteksi dengan response `404 Not Found`. Akses admin hanya melalui path `/admin` dengan autentikasi session terenkripsi HMAC-SHA256. Database, lisensi, dan data order dilindungi dari git (`.gitignore`).
 
 ---
@@ -108,20 +107,6 @@ Untuk mengelola toko melalui browser:
 
 ---
 
-## 🔑 Fitur Aktivasi CID & OCR AI (`/cid`)
-
-Bot ini dilengkapi fitur asistensi aktivasi Microsoft Windows & Office melalui Phone Activation:
-
-1. Pelanggan mengetik perintah `/cid` di Telegram.
-2. Bot meminta pelanggan mengunggah foto layar **Installation ID (Step 2)** yang berisi 9 kelompok angka (total 63 digit).
-3. Bot mengirimkan gambar ke **Google Gemini AI Flash OCR** untuk mengekstrak 63 digit angka IID secara presisi.
-4. Bot menghubungi server backend CID (`CID_BASE_URL`) untuk memvalidasi IID dan mendapatkan **Confirmation ID (CID / Step 3)**.
-5. Bot memformat hasil CID ke dalam blok A-H dan mengirimkannya kembali ke pelanggan lengkap dengan instruksi input.
-
-> **Catatan:** Fitur OCR membutuhkan `GEMINI_API_KEY` gratis dari [Google AI Studio](https://aistudio.google.com/app/apikey).
-
----
-
 ## ⚙️ Pengelolaan Layanan (Systemd)
 
 Bot dan Cloudflare Tunnel berjalan sebagai background service:
@@ -151,7 +136,6 @@ Bot dan Cloudflare Tunnel berjalan sebagai background service:
 │
 ├── handlers/                  # Telegram Bot Handlers
 │   ├── admin.py               # Perintah Telegram khusus admin (/admin, /orders, dll.)
-│   ├── cid.py                 # Handlers aktivasi /cid dan OCR Gemini
 │   ├── myorders.py            # Riwayat pesanan pembeli (/myorders)
 │   ├── product.py             # Alur pembelian produk (katalog, qty, payment)
 │   └── start.py               # Menu utama (/start, /help)

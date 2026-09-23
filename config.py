@@ -84,10 +84,6 @@ ORDERS_DIR: str = _resolve_path("ORDERS_DIR", "orders")
 STOCKS_DIR: str = _resolve_path("STOCKS_DIR", "data/stocks")
 
 
-# CID & OCR Config
-CID_BASE_URL: str = _get_env("CID_BASE_URL", "https://cid.idlisensi.com")
-GEMINI_API_KEY: str = _get_env("GEMINI_API_KEY", "")
-GEMINI_OCR_MODEL: str = _get_env("GEMINI_OCR_MODEL", "gemini-3.5-flash-lite")
 
 
 # Admin Web Panel Config

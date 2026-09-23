@@ -164,11 +164,6 @@ if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
     read -rp "Masukkan URL Publik Anda (contoh: https://toko.domainanda.com): " INP_PUBLIC_URL
 fi
 
-# Gemini API Key (Opsional untuk /cid)
-echo -e "\n${YELLOW}(Opsional) Google Gemini API Key untuk membaca foto Installation ID (/cid)${NC}"
-echo "Dapatkan gratis di https://aistudio.google.com/app/apikey (Tekan Enter jika belum punya)"
-read -rp "$(echo -e "${BOLD}10. GEMINI_API_KEY: ${NC}")" INP_GEMINI_KEY
-
 # 6. Tulis file .env
 echo -e "\n${BLUE}[*] Menyimpan konfigurasi ke .env...${NC}"
 cat <<EOF > "$PROJECT_DIR/.env"
@@ -201,11 +196,6 @@ ADMIN_SESSION_SECRET=$(openssl rand -hex 16)
 DB_PATH=data/bot.db
 ORDERS_DIR=orders
 STOCKS_DIR=data/stocks
-
-# CID Feature & Gemini OCR
-CID_BASE_URL=https://cid.idlisensi.com
-GEMINI_API_KEY=${INP_GEMINI_KEY}
-GEMINI_OCR_MODEL=gemini-3.5-flash-lite
 EOF
 
 chmod 600 "$PROJECT_DIR/.env"

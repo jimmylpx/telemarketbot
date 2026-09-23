@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder
 
 import config
 import db
-from handlers import start, product, myorders, admin, cid
+from handlers import start, product, myorders, admin
 from jobs import poller
 from payments import klikqris
 from payments.dana_webhook import create_webhook_app
@@ -89,7 +89,6 @@ def main():
     product.register(app)
     myorders.register(app)
     admin.register(app)
-    cid.register(app)
 
     # Job queue
     if app.job_queue is not None:

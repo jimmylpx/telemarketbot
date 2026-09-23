@@ -156,12 +156,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
         s_path = get_product_stock_path(p)
         stk = get_stock_count(s_path)
         total_stock_count += stk
-        p_type = p.get("product_type") or ("office_cid" if "office" in p["name"].lower() else "regular")
-        type_badge = (
-            '<span class="badge badge-office">Office (Auto CID)</span>'
-            if p_type == "office_cid"
-            else '<span class="badge badge-reg">Regular Link/Key</span>'
-        )
+        type_badge = '<span class="badge badge-reg">Per Baris (Instant)</span>'
         stk_badge = (
             f'<span class="badge badge-stock-ok">{stk} unit</span>'
             if stk > 0
@@ -354,7 +349,6 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             font-weight: 700;
         }}
         .badge-reg {{ background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; }}
-        .badge-office {{ background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #9333ea; }}
         .badge-stock-ok {{ background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }}
         .badge-stock-zero {{ background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }}
         .badge-pending {{ background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }}
@@ -519,11 +513,8 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tipe Produk</label>
-                            <select name="product_type">
-                                <option value="regular">Biasa / Regular (Link Jio, Akun, Lisensi standar)</option>
-                                <option value="office_cid">Office (Phone Key + Auto Token CID & Panduan Aktivasi)</option>
-                            </select>
+                            <label>Tipe Pengiriman</label>
+                            <input type="text" name="product_type" value="Digital (1 Baris / Unit)" readonly style="opacity:0.8; cursor:not-allowed;" />
                         </div>
                         <div class="form-group">
                             <label>Deskripsi Singkat (Opsional)</label>
@@ -637,11 +628,8 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                         <input type="number" name="price" id="editPrice" min="1000" required />
                     </div>
                     <div class="form-group">
-                        <label>Tipe Produk</label>
-                        <select name="product_type" id="editType">
-                            <option value="regular">Biasa / Regular</option>
-                            <option value="office_cid">Office (Auto CID)</option>
-                        </select>
+                        <label>Tipe Pengiriman</label>
+                        <input type="text" name="product_type" id="editType" value="Digital (1 Baris / Unit)" readonly style="opacity:0.8; cursor:not-allowed;" />
                     </div>
                 </div>
                 <div class="form-group">

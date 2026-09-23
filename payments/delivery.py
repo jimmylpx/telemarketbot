@@ -1,19 +1,13 @@
-"""Modul Pengiriman Otomatis Produk (Auto-Delivery).
-
-Mengambil link/lisensi dari file stok secara atomik & aman dari race condition,
-membuat file ORD-xxxx.txt di folder orders/ (termasuk generate token CID untuk Office),
-lalu mengirimkan file dokumen tersebut langsung ke chat pembeli di Telegram
-serta mengirimkan laporan otomatis ke Telegram ID Admin.
+"""
+Modul Pengiriman Otomatis (Instant Auto-Delivery) untuk Produk Berbasis Baris Teks.
+Mendukung penjualan link (seperti Jio farm), akun, voucher, token, cookie, serial key.
+Setiap baris pada file stok (.txt) merepresentasikan 1 unit produk.
 """
 
-from __future__ import annotations
-
-import fcntl
-import html
-import logging
 import os
 import re
-import httpx
+import fcntl
+import logging
 from pathlib import Path
 from telegram.constants import ParseMode
 
@@ -22,55 +16,44 @@ import db
 
 logger = logging.getLogger(__name__)
 
-OFFICE_STOCK_FILE_PATH = "/home/servermax/bottele/office2021.txt"
 
-
-def escape_markdown(text: str | None) -> str:
-    """Escape Telegram Markdown legacy special characters (_ * ` [)."""
+def escape_markdown(text: str) -> str:
+    """Escape karakter Markdown legacy agar tidak error parse entity."""
     if not text:
         return ""
-    s = str(text)
-    for ch in ("_", "*", "`", "["):
-        s = s.replace(ch, f"\\{ch}")
-    return s
+    return re.sub(r"([_*`\[\]])", r"\\\1", str(text))
 
 
-async def safe_send_markdown(bot, chat_id: int | str, text: str) -> bool:
-    """Kirim pesan Telegram dengan ParseMode.MARKDOWN, fallback ke teks polos jika ada karakter entity error."""
+async def safe_send_markdown(bot, chat_id: int | str, text: str):
+    """Kirim pesan dengan parse_mode MARKDOWN, fallback ke plain text jika gagal."""
     try:
-        await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN)
-        return True
+        return await bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=True,
+        )
     except Exception as exc:
-        logger.warning("Gagal kirim pesan dengan Markdown (%s), mencoba kirim plain text ke %s...", exc, chat_id)
+        logger.warning("Gagal kirim pesan MARKDOWN ke %s: %s. Fallback ke plain text.", chat_id, exc)
+        plain = text.replace("*", "").replace("_", "").replace("`", "")
         try:
-            plain = re.sub(r"[*_`\\]", "", text)
-            await bot.send_message(chat_id=chat_id, text=plain)
-            return True
+            return await bot.send_message(
+                chat_id=chat_id,
+                text=plain,
+                disable_web_page_preview=True,
+            )
         except Exception as exc2:
             logger.error("Gagal kirim pesan plain text ke %s: %s", chat_id, exc2)
             return False
 
 
 def get_product_stock_path(product: dict | None, product_name: str = "") -> str:
-    """Tentukan path file stok berdasarkan produk."""
+    """Tentukan path file stok (.txt) berdasarkan record produk."""
     if product and product.get("stock_file"):
         return product["stock_file"]
-    name = (product.get("name") if product else product_name) or ""
-    if "office" in name.lower():
-        return OFFICE_STOCK_FILE_PATH
-    if product and product.get("id") == 1:
-        return config.STOCK_FILE_PATH
     if product and product.get("id"):
         return f"{config.STOCKS_DIR}/stock_{product['id']}.txt"
     return config.STOCK_FILE_PATH
-
-
-def is_office_product(product: dict | None, product_name: str = "") -> bool:
-    """Cek apakah produk merupakan produk Office / Phone Key yang memerlukan token CID."""
-    if product and product.get("product_type") == "office_cid":
-        return True
-    name = (product.get("name") if product else product_name) or ""
-    return "office" in name.lower()
 
 
 def get_stock_count(stock_path: str | None = None) -> int:
@@ -88,102 +71,88 @@ def get_stock_count(stock_path: str | None = None) -> int:
 
 
 def append_stock_lines(stock_path: str, new_lines: list[str]) -> int:
-    """Tambahkan baris stok baru ke file stok secara atomik dengan file locking."""
-    clean_lines = [line.strip() for line in new_lines if line.strip()]
-    if not clean_lines:
+    """Menambahkan baris-baris stok baru ke akhir file stok dengan atomic lock."""
+    p = Path(stock_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if not p.exists():
+        p.touch()
+
+    cleaned = [l.strip() for l in new_lines if l.strip()]
+    if not cleaned:
         return get_stock_count(stock_path)
 
-    p = Path(stock_path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    mode = "r+" if p.is_file() else "w+"
-
-    with open(p, mode, encoding="utf-8") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+    with open(p, "r+", encoding="utf-8") as f:
         try:
-            f.seek(0)
-            existing = f.read()
-            lines = [l.strip() for l in existing.splitlines() if l.strip()]
-            lines.extend(clean_lines)
-
-            f.seek(0)
-            f.truncate()
-            f.write("\n".join(lines) + "\n")
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            current_content = f.read()
+            f.seek(0, os.SEEK_END)
+            if current_content and not current_content.endswith("\n"):
+                f.write("\n")
+            f.write("\n".join(cleaned) + "\n")
             f.flush()
-            os.fsync(f.fileno())
-            return len(lines)
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+
+    return get_stock_count(stock_path)
 
 
-def save_stock_lines(stock_path: str, lines: list[str]) -> int:
-    """Simpan ulang seluruh baris stok secara atomik."""
-    clean_lines = [line.strip() for line in lines if line.strip()]
+def save_stock_lines(stock_path: str, all_lines: list[str]) -> int:
+    """Menimpa seluruh isi file stok (.txt) dengan list baris baru."""
     p = Path(stock_path)
     p.parent.mkdir(parents=True, exist_ok=True)
+    cleaned = [l.strip() for l in all_lines if l.strip()]
+    content = "\n".join(cleaned) + ("\n" if cleaned else "")
+
     with open(p, "w", encoding="utf-8") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
         try:
-            if clean_lines:
-                f.write("\n".join(clean_lines) + "\n")
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            f.write(content)
             f.flush()
-            os.fsync(f.fileno())
-            return len(clean_lines)
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+
+    return len(cleaned)
 
 
 def take_stock_links(stock_path: str, count: int = 1) -> tuple[list[str], int]:
-    """Ambil sejumlah `count` baris dari file stok dan hapus dari file secara atomik."""
-    stock_file = Path(stock_path)
-    if not stock_file.is_file():
-        logger.error("File stok tidak ditemukan di: %s", stock_path)
+    """
+    Mengambil 'count' baris produk dari file stok secara atomic.
+    Baris yang diambil akan dihapus dari file stok.
+    Mengembalikan (list_produk_diambil, sisa_stok).
+    """
+    p = Path(stock_path)
+    if not p.is_file():
+        logger.error("File stok tidak ditemukan: %s", stock_path)
         return [], 0
 
-    with open(stock_file, "r+", encoding="utf-8") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+    with open(p, "r+", encoding="utf-8") as f:
         try:
-            content = f.read()
-            lines = [line.strip() for line in content.splitlines() if line.strip()]
-            
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            lines = [line.strip() for line in f.readlines() if line.strip()]
+
             if not lines:
                 return [], 0
-            
+
             taken = lines[:count]
             remaining = lines[count:]
-            
-            # Tulis ulang file stok dengan sisa link
+
             f.seek(0)
             f.truncate()
             if remaining:
                 f.write("\n".join(remaining) + "\n")
             f.flush()
-            os.fsync(f.fileno())
             return taken, len(remaining)
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
-
-
-async def generate_cid_token(value: int = 1) -> str | None:
-    """Generate CID token resmi via API cid.idlisensi.com."""
-    url = f"{config.CID_BASE_URL}/api_generate_token.php"
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    data = {"secret": "Paloco$6_cid_token_secret", "value": value}
-    try:
-        async with httpx.AsyncClient(timeout=15.0, headers=headers) as client:
-            resp = await client.post(url, data=data)
-            if resp.status_code == 200:
-                res = resp.json()
-                if res.get("success"):
-                    token = res.get("token")
-                    logger.info("Berhasil generate token CID: %s (value: %d)", token, value)
-                    return token
-                else:
-                    logger.error("Gagal generate token CID: %s", res)
-            else:
-                logger.error("Status error generate token CID: %s", resp.status_code)
-    except Exception as exc:
-        logger.error("Exception generate_cid_token: %s", exc)
-    return None
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
 
 
 def save_order_content(orders_dir: str, order_id: str, content: str) -> Path:
@@ -196,7 +165,7 @@ def save_order_content(orders_dir: str, order_id: str, content: str) -> Path:
 
 
 async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
-    """Kirim produk (link atau Lisensi + Token CID) ke pembeli secara otomatis setelah lunas."""
+    """Kirim produk baris ke pembeli secara otomatis setelah lunas."""
     order_id = order["id"]
     user_id = order["user_id"]
     username = order.get("username") or "Customer"
@@ -211,19 +180,18 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
     orders_dir = Path(config.ORDERS_DIR)
     order_file_path = orders_dir / f"{order_id}.txt"
 
-    # Idempotensi: Cek jika file order sudah pernah dibuat (mencegah kirim dobel)
+    # Idempotensi: Cek jika file order sudah pernah dibuat (mencegah kirim ganda)
     if order_file_path.is_file():
         logger.warning("Order %s sudah pernah dikirimkan sebelumnya.", order_id)
         return True
 
-    # Tentukan path file stok & tipe produk
+    # Tentukan path file stok produk
     stock_path = get_product_stock_path(product, product_name)
-    is_office = is_office_product(product, product_name)
 
-    logger.info("Memproses delivery order %s: product='%s', stock_path='%s', is_office=%s, qty=%d",
-                order_id, product_name, stock_path, is_office, quantity)
+    logger.info("Memproses delivery order %s: product='%s', stock_path='%s', qty=%d",
+                order_id, product_name, stock_path, quantity)
 
-    # Ambil baris lisensi/link dari stok
+    # Ambil baris produk dari stok
     taken_items, remaining_count = take_stock_links(stock_path, count=quantity)
 
     # Kasus: Stok Habis
@@ -231,7 +199,7 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
         logger.error("STOK HABIS untuk order %s di file %s!", order_id, stock_path)
         if bot:
             try:
-                # Hapus pesan QRIS tagihan sebelumnya jika ada
+                # Hapus pesan invoice QRIS sebelumnya jika ada
                 msg_id = order.get("message_id")
                 if msg_id:
                     try:
@@ -239,17 +207,17 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
                     except Exception:
                         pass
 
-                # Notif ke user
+                # Notifikasi ke pembeli
                 out_of_stock_buyer = (
                     f"✅ *Pembayaran Berhasil Diterima!*\n\n"
                     f"Pesanan *#{order_id}* ({escape_markdown(product_name)}) telah lunas.\n\n"
-                    "⚠️ *Catatan:* Stok lisensi/link instan sedang di-restock. "
+                    "⚠️ *Catatan:* Stok instan sedang dalam proses restock. "
                     "Admin akan segera mengirimkan produk Anda secara manual melalui chat ini.\n"
                     "Mohon tunggu sebentar ya!"
                 )
                 await safe_send_markdown(bot, user_id, out_of_stock_buyer)
 
-                # Notif ke admin
+                # Notifikasi ke admin
                 if config.ADMIN_USER_ID:
                     out_of_stock_admin = (
                         f"🚨 *PERINGATAN: STOK HABIS!*\n\n"
@@ -262,61 +230,38 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
                 logger.error("Error kirim pesan stok habis: %s", e)
         return False
 
-    # Buat isi file order
-    if is_office:
-        # Format Lisensi & Token CID untuk Office beserta cara aktivasi
-        blocks = []
-        for lic in taken_items:
-            tok = await generate_cid_token(value=1)
-            tok_str = tok if tok else "Gagal generate token, hubungi admin"
-            block = (
-                f"Lisensi: {lic}\n"
-                f"Token: {tok_str}\n"
-                "Cara aktivivasi:\n"
-                "1. Input lisensi ke app office Windows\n"
-                "2. Ke menu file > account > activate product\n"
-                "3. Pilih Activate by phone, foto\n"
-                "4. Kembali ke bot tele dan ketik /cid dan upload foto IID tadi dan klik dapatkan CID\n"
-                "5. Ikuti petunjuk selanjutnya dari bot."
-            )
-            blocks.append(block)
-        file_text = "\n\n".join(blocks) + "\n"
-        hint_cid = (
-            "\n\n💡 *Cara Aktivasi Office:*\n"
-            "1. Input lisensi ke aplikasi Office Windows\n"
-            "2. Menu *File* > *Account* > *Activate Product*\n"
-            "3. Pilih *Activate by phone*, lalu foto layar Step 2\n"
-            "4. Ketik /cid di bot ini, masukkan Token, upload foto IID & klik *Dapatkan CID*\n"
-            "5. Ikuti petunjuk selanjutnya dari bot."
-        )
-    else:
-        # Format baris link biasa
-        file_text = "\n".join(taken_items) + "\n"
-        hint_cid = ""
+    # Buat isi file order (1 baris per produk)
+    file_text = "\n".join(taken_items) + "\n"
 
     # Simpan file ke folder orders/
     save_order_content(config.ORDERS_DIR, order_id, file_text)
     logger.info("File order %s berhasil disimpan. Sisa stok di %s: %d", order_file_path, stock_path, remaining_count)
 
-    # Hapus pesan QRIS tagihan sebelumnya agar chat rapi & digantikan chat lunas
+    # Hapus pesan QRIS tagihan sebelumnya agar chat rapi
     msg_id = order.get("message_id")
     if msg_id and bot:
         try:
             await bot.delete_message(chat_id=user_id, message_id=msg_id)
-            logger.info("Pesan QRIS lama (message_id %s) untuk order %s berhasil dihapus.", msg_id, order_id)
+            logger.info("Pesan QRIS lama (message_id %s) untuk order %s dihapus.", msg_id, order_id)
         except Exception as del_err:
             logger.warning("Gagal menghapus pesan QRIS lama order %s: %s", order_id, del_err)
 
     # Kirim ke pembeli
     if bot:
-        # 1. Kirim pesan teks ke pembeli
+        # Tampilkan produk langsung di chat jika <= 5 item agar pembeli mudah copy
+        items_preview = ""
+        if len(taken_items) <= 5:
+            preview_lines = [f"`{escape_markdown(it)}`" for it in taken_items]
+            items_preview = "\n\n📦 *Detail Produk Anda:*\n" + "\n".join(preview_lines)
+
+        # 1. Kirim pesan teks konfirmasi
         try:
             buyer_text = (
                 f"🎉 *PEMBAYARAN LUNAS & PRODUK SIAP!*\n\n"
                 f"Order ID: *#{order_id}*\n"
-                f"Produk: *{escape_markdown(product_name)}* (x{quantity})\n\n"
-                f"📄 Rincian produk Anda telah disimpan dalam file *{order_id}.txt* di bawah.\n"
-                f"Silakan unduh dan buka file terlampir.{hint_cid}\n\n"
+                f"Produk: *{escape_markdown(product_name)}* (x{quantity})\n"
+                f"{items_preview}\n\n"
+                f"📄 Salinan produk juga telah disimpan dalam file terlampir di bawah.\n"
                 f"Terima kasih telah berbelanja di *{escape_markdown(config.SHOP_NAME)}*!"
             )
             await safe_send_markdown(bot, user_id, buyer_text)
@@ -352,7 +297,7 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
                     f"📉 *Sisa Stok:* `{remaining_count} unit` di `{s_stock_path}`"
                 )
                 await safe_send_markdown(bot, config.ADMIN_USER_ID, admin_text)
-                logger.info("Notifikasi produk terkirim otomatis berhasil dikirim ke admin %s", config.ADMIN_USER_ID)
+                logger.info("Notifikasi produk terkirim otomatis dikirim ke admin %s", config.ADMIN_USER_ID)
             except Exception as e_adm:
                 logger.error("Gagal kirim notif admin di delivery.py: %s", e_adm)
 

@@ -49,7 +49,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"👋 Halo {first_name}!\n"
         "\n"
         f"Selamat datang di *{config.SHOP_NAME}*.\n"
-        "Ketuk /katalog untuk order produk, /cid untuk aktivasi Confirmation ID, /myorders untuk orderan kamu, "
+        "Ketuk /katalog untuk order produk, /myorders untuk orderan kamu, "
         "atau /help untuk bantuan."
     )
 
@@ -66,7 +66,6 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "📖 *Bantuan*\n"
         "\n"
         "/katalog — Lihat & order produk\n"
-        "/cid — Aktivasi Confirmation ID (CID) & OCR\n"
         "/myorders — Lihat orderan kamu\n"
         "/start — Menu utama\n"
         "\n"
