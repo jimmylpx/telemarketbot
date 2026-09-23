@@ -279,7 +279,7 @@ def run_interactive_setup():
     zone_id = selected_zone["id"]
 
     print(f"\n[*] Domain dasar: {zone_name}")
-    subdomain_input = input("Masukkan subdomain yang diinginkan (contoh: bijistore, toko): ").strip().lower()
+    subdomain_input = input("Masukkan subdomain yang diinginkan (contoh: toko, order, bot): ").strip().lower()
     while not subdomain_input:
         subdomain_input = input("Subdomain wajib diisi: ").strip().lower()
 
