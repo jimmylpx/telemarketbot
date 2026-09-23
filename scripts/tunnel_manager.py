@@ -184,8 +184,9 @@ def main():
     if tunnel_mode == "custom_domain" and tunnel_token:
         logger.info("Mode: Cloudflare Named Tunnel (Domain Sendiri)")
         cmd = [cf_bin, "tunnel", "run", "--token", tunnel_token]
-        custom_public_url = env_vars.get("PUBLIC_URL", "")
+        custom_public_url = env_vars.get("CUSTOM_DOMAIN_URL") or env_vars.get("PUBLIC_URL", "")
         if custom_public_url:
+            update_env_public_url(custom_public_url)
             try:
                 TUNNEL_URL_FILE.write_text(custom_public_url, encoding="utf-8")
                 logger.info("URL Publik permanen diset: %s", custom_public_url)

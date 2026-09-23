@@ -295,6 +295,7 @@ def run_interactive_setup():
 
         # Simpan ke .env
         save_env_var("TUNNEL_MODE", "custom_domain")
+        save_env_var("CUSTOM_DOMAIN_URL", public_url)
         save_env_var("CLOUDFLARE_TUNNEL_TOKEN", tunnel_token)
         save_env_var("CLOUDFLARE_TUNNEL_ID", tunnel_id)
         save_env_var("CLOUDFLARE_ACCOUNT_ID", account_id)
@@ -340,16 +341,17 @@ def switch_to_trycloudflare():
 def switch_to_custom_domain():
     env_vars = load_env()
     token = env_vars.get("CLOUDFLARE_TUNNEL_TOKEN")
-    public_url = env_vars.get("PUBLIC_URL")
+    custom_url = env_vars.get("CUSTOM_DOMAIN_URL") or env_vars.get("PUBLIC_URL")
 
-    if token and public_url and "trycloudflare.com" not in public_url:
+    if token and custom_url and "trycloudflare.com" not in custom_url:
         print(f"\n[*] Konfigurasi domain sendiri sebelumnya ditemukan:")
-        print(f"    Public URL: {public_url}")
+        print(f"    Public URL: {custom_url}")
         choice = input("Gunakan konfigurasi domain ini? (Y/n, atau 'b' untuk re-setup baru): ").strip().lower()
         if choice in ["y", ""]:
             save_env_var("TUNNEL_MODE", "custom_domain")
-            TUNNEL_URL_FILE.write_text(public_url, encoding="utf-8")
-            print(f"[+] Mode berhasil diubah ke: Cloudflare Named Tunnel ({public_url})")
+            save_env_var("PUBLIC_URL", custom_url)
+            TUNNEL_URL_FILE.write_text(custom_url, encoding="utf-8")
+            print(f"[+] Mode berhasil diubah ke: Cloudflare Named Tunnel ({custom_url})")
             return True
 
     # Jika belum ada atau user ingin re-setup
