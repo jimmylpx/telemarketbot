@@ -292,13 +292,19 @@ if [ "$USE_CF" = "true" ]; then
     $SUDO systemctl restart telemarketbot-tunnel.service
 fi
 
+# 11. Pasang CLI Global 'telemarketbot'
+echo -e "\n${BLUE}[*] Memasang perintah CLI global 'telemarketbot'...${NC}"
+$SUDO cp "$PROJECT_DIR/bin/telemarketbot" /usr/local/bin/telemarketbot
+$SUDO chmod +x /usr/local/bin/telemarketbot
+echo -e "${GREEN}[+] Perintah CLI 'telemarketbot' berhasil dipasang di /usr/local/bin/telemarketbot${NC}"
+
 echo -e "\n${GREEN}${BOLD}=================================================================="
 echo "                   INSTALASI SELESAI & BERHASIL! 🚀"
 echo "==================================================================${NC}"
-echo -e "Bot Telegram: ${GREEN}AKTIF${NC} (Layanan: telemarketbot.service)"
+echo -e "Bot Telegram: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
 if [ "$USE_CF" = "true" ]; then
-    echo -e "Cloudflare Tunnel: ${GREEN}AKTIF${NC} (Layanan: telemarketbot-tunnel.service)"
-    echo -e "${YELLOW}URL Quick Tunnel sedang dibuat dan akan otomatis dikirimkan ke Telegram Admin Anda!${NC}"
+    echo -e "Cloudflare Tunnel: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
+    echo -e "${YELLOW}URL Quick Tunnel sedang dibuat dan otomatis dikirimkan ke Telegram Admin Anda!${NC}"
 fi
 echo -e "\n${BOLD}Informasi Akses & Kredensial:${NC}"
 echo -e "• Web Admin Panel   : ${CYAN}/admin${NC}"
@@ -306,12 +312,11 @@ echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
 echo -e "• Webhook DANA Path : ${CYAN}/webhook/dana${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 
-echo -e "\n${BOLD}Perintah Pengelolaan:${NC}"
-echo -e "• Cek status bot    : ${CYAN}sudo systemctl status telemarketbot${NC}"
-if [ "$USE_CF" = "true" ]; then
-    echo -e "• Cek status tunnel : ${CYAN}sudo systemctl status telemarketbot-tunnel${NC}"
-    echo -e "• Cek URL live      : ${CYAN}cat .current_tunnel_url${NC}"
-fi
-echo -e "• Pantau log bot    : ${CYAN}sudo journalctl -u telemarketbot -f${NC}"
-echo -e "• Restart bot       : ${CYAN}sudo systemctl restart telemarketbot${NC}"
+echo -e "\n${BOLD}🚀 Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"
+echo -e "• Cek Status & URL live : ${CYAN}telemarketbot status${NC}"
+echo -e "• Pantau Log Transaksi  : ${CYAN}telemarketbot log${NC} (Ctrl+C hanya keluar log)"
+echo -e "• Restart Server        : ${CYAN}telemarketbot restart${NC}"
+echo -e "• Jalankan Server       : ${CYAN}telemarketbot start${NC}"
+echo -e "• Hentikan Server       : ${CYAN}telemarketbot stop${NC}"
+echo -e "• Cetak URL Live Saja   : ${CYAN}telemarketbot url${NC}"
 echo -e "==================================================================\n"

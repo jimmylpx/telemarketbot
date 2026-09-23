@@ -107,19 +107,20 @@ Untuk mengelola toko melalui browser:
 
 ---
 
-## ⚙️ Pengelolaan Layanan (Systemd)
+## ⚙️ Pengelolaan Layanan (CLI Tool)
 
-Bot dan Cloudflare Tunnel berjalan sebagai background service:
+TeleMarketBot dilengkapi perintah CLI global `telemarketbot` yang dapat dipanggil dari folder mana saja tanpa perlu mengetik perintah `systemctl` manual:
 
 | Perintah | Fungsi |
 |---|---|
-| `sudo systemctl status telemarketbot` | Cek status server bot & webhook |
-| `sudo systemctl status telemarketbot-tunnel` | Cek status Cloudflare Quick Tunnel |
-| `sudo journalctl -u telemarketbot -f` | Pantau log realtime transaksi bot |
-| `sudo journalctl -u telemarketbot-tunnel -f` | Pantau log tunnel & link live |
-| `sudo systemctl restart telemarketbot` | Restart bot |
-| `sudo systemctl restart telemarketbot-tunnel` | Restart tunnel (akan men-generate URL baru) |
-| `cat .current_tunnel_url` | Melihat URL publik Cloudflare yang aktif saat ini |
+| `telemarketbot status` | Cek status bot, Cloudflare tunnel, dan URL live dalam 1 tampilan |
+| `telemarketbot log` | Pantau log realtime transaksi (tekan `Ctrl+C` kapan saja untuk keluar, server tetap aman) |
+| `telemarketbot restart` | Restart server bot & Cloudflare tunnel |
+| `telemarketbot start` | Jalankan bot & tunnel (sekaligus mengaktifkan auto-start saat reboot) |
+| `telemarketbot stop` | Hentikan sementara server bot & tunnel |
+| `telemarketbot url` | Cetak link live publik & admin panel saat ini |
+
+> **Auto-Start on Boot:** Layanan otomatis terdaftar di `systemd` dengan status `enabled` sehingga bot dan tunnel akan otomatis menyala kembali setiap kali server reboot / mati listrik.
 
 ---
 
