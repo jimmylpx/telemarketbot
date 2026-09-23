@@ -36,7 +36,7 @@ fi
 cmd_status() {
     echo -e "${CYAN}${BOLD}"
     echo "=================================================================="
-    echo "              🤖 TELEMARKETBOT STATUS & OVERVIEW"
+    echo "              TELEMARKETBOT STATUS & OVERVIEW"
     echo "=================================================================="
     echo -e "${NC}"
 
@@ -114,7 +114,7 @@ cmd_status() {
         *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
     esac
 
-    echo -e "\n${BOLD}🌐 INFORMASI AKSES LIVE:${NC}"
+    echo -e "\n${BOLD}INFORMASI AKSES LIVE:${NC}"
     if [ -n "$LIVE_URL" ] && [ "$LIVE_URL" != "https://try.cloudflare.com" ]; then
         echo -e "• Public URL       : ${CYAN}${BOLD}${LIVE_URL}${NC}"
         echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}${ADMIN_PATH}${NC}"
@@ -123,7 +123,7 @@ cmd_status() {
         echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu jalankan kembali.${NC}"
     fi
 
-    echo -e "\n${BOLD}⚙️ DETAIL SISTEM:${NC}"
+    echo -e "\n${BOLD}DETAIL SISTEM:${NC}"
     echo -e "• Direktori Kerja  : ${WORKDIR}"
     echo -e "• Port Lokal       : ${PORT}"
     echo -e "=================================================================="

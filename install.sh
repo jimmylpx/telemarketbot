@@ -21,7 +21,7 @@ INSTALL_DIR="telemarketbot"
 
 echo -e "${CYAN}${BOLD}"
 echo "=================================================================="
-echo "    🚀 INSTALLER TELEGRAM AUTO ORDER & DANA BISNIS GATEWAY"
+echo "    INSTALLER TELEGRAM AUTO ORDER & DANA BISNIS GATEWAY"
 echo "           Dengan Cloudflare Quick Tunnel (try.cloudflare.com)"
 echo "=================================================================="
 echo -e "${NC}"
@@ -332,7 +332,7 @@ if [ "$USE_CF" = "true" ]; then
 fi
 
 echo -e "\n${GREEN}${BOLD}=================================================================="
-echo "                   INSTALASI SELESAI & BERHASIL! 🚀"
+echo "                   INSTALASI SELESAI & BERHASIL!"
 echo "==================================================================${NC}"
 echo -e "Bot Telegram: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
 if [ "$USE_CF" = "true" ]; then
@@ -350,7 +350,7 @@ fi
 echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 
-echo -e "\n${BOLD}🚀 Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"
+echo -e "\n${BOLD}Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"
 echo -e "• Cek Status & URL live : ${CYAN}telemarketbot status${NC}"
 echo -e "• Pantau Log Transaksi  : ${CYAN}telemarketbot log${NC} (Ctrl+C hanya keluar log)"
 echo -e "• Restart Server        : ${CYAN}telemarketbot restart${NC}"
