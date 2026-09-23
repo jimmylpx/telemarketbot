@@ -27,6 +27,15 @@ logger = logging.getLogger(__name__)
 
 COOKIE_NAME = "idlisensi_admin_session"
 
+def get_admin_path() -> str:
+    path = getattr(config, "ADMIN_WEB_PATH", "/admin").strip()
+    if not path.startswith("/"):
+        path = "/" + path
+    path = path.rstrip("/")
+    return path if path else "/admin"
+
+
+
 
 def _sign_token(value: str) -> str:
     sig = hmac.new(
@@ -148,6 +157,7 @@ LOGIN_HTML = """<!DOCTYPE html>
 
 
 def render_dashboard(products: list[dict], stats: dict, orders: list[dict], alert_msg: str = "", alert_err: str = "") -> str:
+    admin_path = get_admin_path()
     total_stock_count = 0
     prod_rows = []
     prod_options = []
@@ -435,7 +445,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <h1>🤖 {config.SHOP_NAME}</h1>
                 <span>ADMIN PANEL</span>
             </div>
-            <a href="/admin/logout" class="logout-btn">Keluar (Logout)</a>
+            <a href="{admin_path}/logout" class="logout-btn">Keluar (Logout)</a>
         </header>
 
         {alert_banner}
@@ -500,7 +510,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="card-header">
                     <div class="card-title">➕ Tambah Produk Baru ke Bot Telegram</div>
                 </div>
-                <form method="POST" action="/admin/products/add">
+                <form method="POST" action="{admin_path}/products/add">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nama Produk</label>
@@ -540,7 +550,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="card-header">
                     <div class="card-title">⚡ Tambah Stok (Restock) Produk</div>
                 </div>
-                <form method="POST" action="/admin/products/restock">
+                <form method="POST" action="{admin_path}/products/restock">
                     <div class="form-group">
                         <label>Pilih Produk yang Ingin Ditambah Stok:</label>
                         <select name="product_id" id="restockSelect" required>
@@ -595,7 +605,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 Produk: <strong id="stockProdTitle" style="color:#38bdf8;"></strong><br/>
                 File path: <code id="stockFilePath" class="file-path"></code>
             </p>
-            <form method="POST" action="/admin/products/stock/save">
+            <form method="POST" action="{admin_path}/products/stock/save">
                 <input type="hidden" name="product_id" id="stockPid" />
                 <div class="form-group">
                     <label>Isi File Stok (1 baris per unit, dipisahkan Enter / \\n):</label>
@@ -617,7 +627,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="modal-title">✏️ Edit Informasi Produk</div>
                 <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
             </div>
-            <form method="POST" action="/admin/products/edit">
+            <form method="POST" action="{admin_path}/products/edit">
                 <input type="hidden" name="product_id" id="editPid" />
                 <div class="form-group">
                     <label>Nama Produk</label>
@@ -653,7 +663,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
             </div>
             <p style="margin-bottom: 20px; color:#cbd5e1;">Apakah Anda yakin ingin menghapus produk <strong id="deleteProdName" style="color:#ef4444;"></strong> dari bot Telegram?</p>
-            <form method="POST" action="/admin/products/delete">
+            <form method="POST" action="{admin_path}/products/delete">
                 <input type="hidden" name="product_id" id="deletePid" />
                 <div style="display:flex; justify-content: flex-end; gap:10px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Batal</button>
@@ -689,7 +699,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             document.getElementById('stockModal').classList.add('active');
 
             try {{
-                const res = await fetch('/admin/products/stock?id=' + pid);
+                const res = await fetch('{admin_path}/products/stock?id=' + pid);
                 const data = await res.json();
                 if (data.success) {{
                     document.getElementById('stockFilePath').textContent = data.stock_path;
@@ -749,35 +759,40 @@ async def handle_not_found(request: web.Request) -> web.Response:
 
 
 async def handle_login_page(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if is_authenticated(request):
-        raise web.HTTPFound("/admin")
+        raise web.HTTPFound(admin_path)
     err = request.query.get("err", "")
     alert = f'<div class="alert">{html.escape(err)}</div>' if err else ""
-    return web.Response(text=LOGIN_HTML.replace("__ALERT__", alert), content_type="text/html")
+    page = LOGIN_HTML.replace("__ALERT__", alert).replace('action="/admin/login"', f'action="{admin_path}/login"')
+    return web.Response(text=page, content_type="text/html")
 
 
 async def handle_login_submit(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     data = await request.post()
     pw = str(data.get("password", "")).strip()
 
     if pw == config.ADMIN_WEB_PASSWORD:
-        resp = web.HTTPFound("/admin")
+        resp = web.HTTPFound(admin_path)
         token = _sign_token("admin_authenticated")
         resp.set_cookie(COOKIE_NAME, token, httponly=True, max_age=86400 * 30, path="/")
         return resp
 
-    raise web.HTTPFound("/admin/login?err=Password+salah!+Periksa+kembali+password+admin+Anda.")
+    raise web.HTTPFound(f"{admin_path}/login?err=Password+salah!+Periksa+kembali+password+admin+Anda.")
 
 
 async def handle_logout(request: web.Request) -> web.Response:
-    resp = web.HTTPFound("/admin/login")
+    admin_path = get_admin_path()
+    resp = web.HTTPFound(f"{admin_path}/login")
     resp.del_cookie(COOKIE_NAME, path="/")
     return resp
 
 
 async def handle_admin_dashboard(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     products = db.list_products()
     stats = db.get_orders_stats()
@@ -823,19 +838,20 @@ async def handle_get_product_stock(request: web.Request) -> web.Response:
 
 
 async def handle_save_product_stock(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     """Menyimpan seluruh isi file stok (.txt) hasil edit langsung."""
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if not product:
-        raise web.HTTPFound("/admin?err=Produk+tidak+ditemukan!")
+        raise web.HTTPFound(f"{admin_path}?err=Produk+tidak+ditemukan!")
 
     raw_content = str(data.get("stock_content", ""))
     lines = [l.strip() for l in raw_content.splitlines() if l.strip()]
@@ -843,12 +859,13 @@ async def handle_save_product_stock(request: web.Request) -> web.Response:
     save_stock_lines(stock_path, lines)
     logger.info("Admin mengedit langsung file stok #%d '%s': total %d unit disimpan", pid, product['name'], len(lines))
 
-    raise web.HTTPFound(f"/admin?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
+    raise web.HTTPFound(f"{admin_path}?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
 
 
 async def handle_product_add(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     data = await request.post()
     name = str(data.get("name", "")).strip()
@@ -858,14 +875,14 @@ async def handle_product_add(request: web.Request) -> web.Response:
     stock_raw = str(data.get("stock_lines", "")).strip()
 
     if not name:
-        raise web.HTTPFound("/admin?err=Nama+produk+tidak+boleh+kosong!")
+        raise web.HTTPFound(f"{admin_path}?err=Nama+produk+tidak+boleh+kosong!")
 
     try:
         price = int(price_raw)
         if price <= 0:
             raise ValueError()
     except ValueError:
-        raise web.HTTPFound("/admin?err=Harga+produk+harus+berupa+angka+valid!")
+        raise web.HTTPFound(f"{admin_path}?err=Harga+produk+harus+berupa+angka+valid!")
 
     # 1. Tambah record ke DB
     new_pid = db.add_product(name=name, price=price, description=desc, product_type=p_type)
@@ -886,72 +903,75 @@ async def handle_product_add(request: web.Request) -> web.Response:
     db.update_product(new_pid, stock_file=stock_file_path)
     logger.info("Admin menambahkan produk baru: #%d '%s' (Rp %d, %d unit stok)", new_pid, name, price, len(lines))
 
-    raise web.HTTPFound(f"/admin?msg=Produk+%23{new_pid}+'{name}'+berhasil+dibuat+dengan+{len(lines)}+unit+stok!")
+    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{new_pid}+'{name}'+berhasil+dibuat+dengan+{len(lines)}+unit+stok!")
 
 
 async def handle_product_restock(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if not product:
-        raise web.HTTPFound("/admin?err=Produk+tidak+ditemukan!")
+        raise web.HTTPFound(f"{admin_path}?err=Produk+tidak+ditemukan!")
 
     stock_raw = str(data.get("stock_lines", "")).strip()
     lines = [l.strip() for l in stock_raw.splitlines() if l.strip()]
     if not lines:
-        raise web.HTTPFound("/admin?err=Tidak+ada+baris+stok+yang+dimasukkan!")
+        raise web.HTTPFound(f"{admin_path}?err=Tidak+ada+baris+stok+yang+dimasukkan!")
 
     stock_path = get_product_stock_path(product)
     total_now = append_stock_lines(stock_path, lines)
     logger.info("Admin restock produk #%d '%s': +%d unit (total sekarang: %d)", pid, product['name'], len(lines), total_now)
 
-    raise web.HTTPFound(f"/admin?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")
+    raise web.HTTPFound(f"{admin_path}?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")
 
 
 async def handle_product_edit(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
         price = int(data.get("price", "0"))
     except ValueError:
-        raise web.HTTPFound("/admin?err=Input+angka+tidak+valid!")
+        raise web.HTTPFound(f"{admin_path}?err=Input+angka+tidak+valid!")
 
     name = str(data.get("name", "")).strip()
     desc = str(data.get("description", "")).strip()
     p_type = str(data.get("product_type", "regular")).strip()
 
     if not name:
-        raise web.HTTPFound("/admin?err=Nama+produk+tidak+boleh+kosong!")
+        raise web.HTTPFound(f"{admin_path}?err=Nama+produk+tidak+boleh+kosong!")
 
     db.update_product(pid, name=name, price=price, description=desc, product_type=p_type)
     logger.info("Admin mengedit produk #%d: '%s' (Rp %d)", pid, name, price)
 
-    raise web.HTTPFound(f"/admin?msg=Produk+%23{pid}+berhasil+diperbarui!")
+    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{pid}+berhasil+diperbarui!")
 
 
 async def handle_product_delete(request: web.Request) -> web.Response:
+    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound("/admin/login")
+        raise web.HTTPFound(f"{admin_path}/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if product:
         db.delete_product(pid)
         logger.info("Admin menghapus produk #%d: '%s'", pid, product['name'])
 
-    raise web.HTTPFound(f"/admin?msg=Produk+%23{pid}+berhasil+dihapus+dari+bot!")
+    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{pid}+berhasil+dihapus+dari+bot!")

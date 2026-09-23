@@ -90,3 +90,16 @@ GEMINI_OCR_MODEL: str = _get_env("GEMINI_OCR_MODEL", "gemini-3.5-flash-lite")
 # Admin Web Panel Config
 ADMIN_WEB_PASSWORD: str = _get_env("ADMIN_WEB_PASSWORD", "paloco46")
 ADMIN_SESSION_SECRET: str = _get_env("ADMIN_SESSION_SECRET", "idlisensi_secret_panel_key_2026")
+
+
+def _clean_path(path_str: str, default: str) -> str:
+    p = path_str.strip()
+    if not p:
+        p = default
+    if not p.startswith("/"):
+        p = "/" + p
+    return p.rstrip("/") if p != "/" else "/"
+
+# Custom Paths untuk Admin Web Panel & DANA Webhook
+ADMIN_WEB_PATH: str = _clean_path(_get_env("ADMIN_WEB_PATH", "/admin"), "/admin")
+DANA_WEBHOOK_PATH: str = _clean_path(_get_env("DANA_WEBHOOK_PATH", "/webhook/dana"), "/webhook/dana")

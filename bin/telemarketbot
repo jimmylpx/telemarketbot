@@ -90,11 +90,35 @@ cmd_status() {
         fi
     fi
 
+    ADMIN_PATH="/admin"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_ADMIN_PATH=$(grep "^ADMIN_WEB_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_ADMIN_PATH" ]; then
+            ADMIN_PATH="$ENV_ADMIN_PATH"
+        fi
+    fi
+    case "$ADMIN_PATH" in
+        /*) ;;
+        *) ADMIN_PATH="/$ADMIN_PATH" ;;
+    esac
+
+    WEBHOOK_PATH="/webhook/dana"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_WEBHOOK_PATH" ]; then
+            WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
+        fi
+    fi
+    case "$WEBHOOK_PATH" in
+        /*) ;;
+        *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
+    esac
+
     echo -e "\n${BOLD}🌐 INFORMASI AKSES LIVE:${NC}"
     if [ -n "$LIVE_URL" ] && [ "$LIVE_URL" != "https://try.cloudflare.com" ]; then
         echo -e "• Public URL       : ${CYAN}${BOLD}${LIVE_URL}${NC}"
-        echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}/admin${NC}"
-        echo -e "• Webhook DANA     : ${GREEN}${BOLD}${LIVE_URL}/webhook/dana${NC}"
+        echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}${ADMIN_PATH}${NC}"
+        echo -e "• Webhook DANA     : ${GREEN}${BOLD}${LIVE_URL}${WEBHOOK_PATH}${NC}"
     else
         echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu jalankan kembali.${NC}"
     fi
@@ -159,10 +183,34 @@ cmd_url() {
     if [ -z "$LIVE_URL" ] && [ -f "$WORKDIR/.env" ]; then
         LIVE_URL=$(grep "^PUBLIC_URL=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
     fi
+    ADMIN_PATH="/admin"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_ADMIN_PATH=$(grep "^ADMIN_WEB_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_ADMIN_PATH" ]; then
+            ADMIN_PATH="$ENV_ADMIN_PATH"
+        fi
+    fi
+    case "$ADMIN_PATH" in
+        /*) ;;
+        *) ADMIN_PATH="/$ADMIN_PATH" ;;
+    esac
+
+    WEBHOOK_PATH="/webhook/dana"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_WEBHOOK_PATH" ]; then
+            WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
+        fi
+    fi
+    case "$WEBHOOK_PATH" in
+        /*) ;;
+        *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
+    esac
+
     if [ -n "$LIVE_URL" ]; then
         echo -e "${BOLD}Public URL  :${NC} $LIVE_URL"
-        echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL/admin"
-        echo -e "${BOLD}Webhook DANA:${NC} $LIVE_URL/webhook/dana"
+        echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL${ADMIN_PATH}"
+        echo -e "${BOLD}Webhook DANA:${NC} $LIVE_URL${WEBHOOK_PATH}"
     else
         echo -e "${RED}URL belum tersedia. Cek dengan 'telemarketbot status'${NC}"
     fi

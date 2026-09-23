@@ -143,20 +143,36 @@ done
 
 # Password Admin Web Panel
 RANDOM_PASS=$(openssl rand -base64 6 | tr -dc 'a-zA-Z0-9')
-read -rp "$(echo -e "${BOLD}6. Password Admin Web Panel /admin (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
+read -rp "$(echo -e "${BOLD}6. Password Admin Web Panel (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
 INP_ADMIN_PASSWORD=${INP_ADMIN_PASSWORD:-$RANDOM_PASS}
 
-# Port Webhook
-read -rp "$(echo -e "${BOLD}7. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
+# Path URL Admin Web Panel
+read -rp "$(echo -e "${BOLD}7. Path URL Admin Web Panel (Default: /admin): ${NC}")" INP_ADMIN_PATH
+INP_ADMIN_PATH=${INP_ADMIN_PATH:-/admin}
+case "$INP_ADMIN_PATH" in
+    /*) ;;
+    *) INP_ADMIN_PATH="/$INP_ADMIN_PATH" ;;
+esac
+
+# Path URL Webhook DANA
+read -rp "$(echo -e "${BOLD}8. Path URL Webhook DANA (Default: /webhook/dana): ${NC}")" INP_WEBHOOK_PATH
+INP_WEBHOOK_PATH=${INP_WEBHOOK_PATH:-/webhook/dana}
+case "$INP_WEBHOOK_PATH" in
+    /*) ;;
+    *) INP_WEBHOOK_PATH="/$INP_WEBHOOK_PATH" ;;
+esac
+
+# Port Webhook Lokal
+read -rp "$(echo -e "${BOLD}9. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
 INP_WEBHOOK_PORT=${INP_WEBHOOK_PORT:-8085}
 
 # Webhook Secret Token
 DEFAULT_SECRET="bottele_dana_secret_2026"
-read -rp "$(echo -e "${BOLD}8. Secret Token Webhook (Default: $DEFAULT_SECRET): ${NC}")" INP_WEBHOOK_SECRET
+read -rp "$(echo -e "${BOLD}10. Secret Token Webhook (Default: $DEFAULT_SECRET): ${NC}")" INP_WEBHOOK_SECRET
 INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$DEFAULT_SECRET}
 
 # Pilihan Tunnel
-echo -e "\n${BOLD}9. Pilih Metode Akses Publik / Online Webhook:${NC}"
+echo -e "\n${BOLD}11. Pilih Metode Akses Publik / Online Webhook:${NC}"
 echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Rekomendasi - Gratis, Tanpa Domain]"
 echo "  2) Custom Domain / Reverse Proxy Sendiri (Pangolin, Nginx, dll.)"
 read -rp "Pilihan Anda (1/2, default: 1): " INP_TUNNEL_CHOICE
@@ -307,9 +323,9 @@ if [ "$USE_CF" = "true" ]; then
     echo -e "${YELLOW}URL Quick Tunnel sedang dibuat dan otomatis dikirimkan ke Telegram Admin Anda!${NC}"
 fi
 echo -e "\n${BOLD}Informasi Akses & Kredensial:${NC}"
-echo -e "• Web Admin Panel   : ${CYAN}/admin${NC}"
+echo -e "• Web Admin Panel   : ${CYAN}${INP_ADMIN_PATH}${NC}"
 echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
-echo -e "• Webhook DANA Path : ${CYAN}/webhook/dana${NC}"
+echo -e "• Webhook DANA Path : ${CYAN}${INP_WEBHOOK_PATH}${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 
 echo -e "\n${BOLD}🚀 Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"

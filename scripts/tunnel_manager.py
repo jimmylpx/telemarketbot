@@ -72,14 +72,21 @@ def update_env_public_url(new_url: str):
         logger.error("Gagal memperbarui PUBLIC_URL di .env: %s", exc)
 
 
-def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int):
+def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int, env_vars: dict = None):
+    if env_vars is None:
+        env_vars = load_env_vars()
     """Mengirim pesan notifikasi link live tunnel ke admin via Telegram Bot API."""
     if not bot_token or not admin_id:
         logger.info("Bot token atau Admin ID tidak diset di .env, lewati notifikasi Telegram.")
         return
 
-    admin_link = f"{tunnel_url}/admin"
-    webhook_link = f"{tunnel_url}/webhook/dana"
+    admin_path = env_vars.get("ADMIN_WEB_PATH", "/admin").strip()
+    if not admin_path.startswith("/"): admin_path = "/" + admin_path
+    webhook_path = env_vars.get("DANA_WEBHOOK_PATH", "/webhook/dana").strip()
+    if not webhook_path.startswith("/"): webhook_path = "/" + webhook_path
+
+    admin_link = f"{tunnel_url}{admin_path}"
+    webhook_link = f"{tunnel_url}{webhook_path}"
 
     msg = (
         "🌐 *Cloudflare Quick Tunnel Online!*\n\n"
@@ -212,8 +219,12 @@ def main():
                         last_url = found_url
                         logger.info("==================================================")
                         logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
-                        logger.info("⚙️  Admin Panel: %s/admin", found_url)
-                        logger.info("🔔 Webhook URL: %s/webhook/dana", found_url)
+                        admin_p = fresh_env.get("ADMIN_WEB_PATH", "/admin").strip()
+                        if not admin_p.startswith("/"): admin_p = "/" + admin_p
+                        hook_p = fresh_env.get("DANA_WEBHOOK_PATH", "/webhook/dana").strip()
+                        if not hook_p.startswith("/"): hook_p = "/" + hook_p
+                        logger.info("⚙️  Admin Panel: %s%s", found_url, admin_p)
+                        logger.info("🔔 Webhook URL: %s%s", found_url, hook_p)
                         logger.info("==================================================")
 
                         # 1. Simpan ke .current_tunnel_url
@@ -230,7 +241,7 @@ def main():
                         fresh_env = load_env_vars()
                         t_token = fresh_env.get("TELEGRAM_BOT_TOKEN", bot_token)
                         t_admin = fresh_env.get("ADMIN_USER_ID", admin_id)
-                        send_telegram_notification(t_token, t_admin, found_url, port)
+                        send_telegram_notification(t_token, t_admin, found_url, port, fresh_env)
 
             proc.wait()
             ret_code = proc.returncode

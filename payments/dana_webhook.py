@@ -230,26 +230,39 @@ def create_webhook_app(bot) -> web.Application:
     app = web.Application()
     app["bot"] = bot
 
-    # Root & unauthorized endpoints tetap 404 (tidak diarahkan ke login)
+    webhook_path = getattr(config, "DANA_WEBHOOK_PATH", "/webhook/dana")
+    if not webhook_path.startswith("/"):
+        webhook_path = "/" + webhook_path
+
+    admin_path = getattr(config, "ADMIN_WEB_PATH", "/admin").rstrip("/")
+    if not admin_path.startswith("/"):
+        admin_path = "/" + admin_path
+    if not admin_path:
+        admin_path = "/admin"
+
+    # Root & health endpoints
     app.router.add_get("/", admin_web.handle_not_found)
     app.router.add_get("/health", handle_health)
-    app.router.add_get("/webhook/dana", admin_web.handle_not_found)
 
-    # DANA Webhook POST (untuk MacroDroid / Forwarder HP)
-    app.router.add_post("/webhook/dana", handle_dana_webhook)
+    # DANA Webhook POST & GET
+    app.router.add_get(webhook_path, admin_web.handle_not_found)
+    app.router.add_post(webhook_path, handle_dana_webhook)
+    if webhook_path != "/webhook/dana":
+        app.router.add_get("/webhook/dana", admin_web.handle_not_found)
+        app.router.add_post("/webhook/dana", handle_dana_webhook)
 
-    # Admin Web Panel Routes (harus manual akses /admin)
-    app.router.add_get("/admin", admin_web.handle_admin_dashboard)
-    app.router.add_get("/admin/login", admin_web.handle_login_page)
-    app.router.add_post("/admin/login", admin_web.handle_login_submit)
-    app.router.add_get("/admin/logout", admin_web.handle_logout)
+    # Admin Web Panel Routes
+    app.router.add_get(admin_path, admin_web.handle_admin_dashboard)
+    app.router.add_get(f"{admin_path}/login", admin_web.handle_login_page)
+    app.router.add_post(f"{admin_path}/login", admin_web.handle_login_submit)
+    app.router.add_get(f"{admin_path}/logout", admin_web.handle_logout)
 
     # Admin Product Actions
-    app.router.add_post("/admin/products/add", admin_web.handle_product_add)
-    app.router.add_post("/admin/products/restock", admin_web.handle_product_restock)
-    app.router.add_get("/admin/products/stock", admin_web.handle_get_product_stock)
-    app.router.add_post("/admin/products/stock/save", admin_web.handle_save_product_stock)
-    app.router.add_post("/admin/products/edit", admin_web.handle_product_edit)
-    app.router.add_post("/admin/products/delete", admin_web.handle_product_delete)
+    app.router.add_post(f"{admin_path}/products/add", admin_web.handle_product_add)
+    app.router.add_post(f"{admin_path}/products/restock", admin_web.handle_product_restock)
+    app.router.add_get(f"{admin_path}/products/stock", admin_web.handle_get_product_stock)
+    app.router.add_post(f"{admin_path}/products/stock/save", admin_web.handle_save_product_stock)
+    app.router.add_post(f"{admin_path}/products/edit", admin_web.handle_product_edit)
+    app.router.add_post(f"{admin_path}/products/delete", admin_web.handle_product_delete)
 
     return app

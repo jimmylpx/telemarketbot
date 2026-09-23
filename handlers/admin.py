@@ -515,8 +515,8 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "• /delproduct `<id>` — Hapus produk\n"
         "• /orders — Lihat riwayat & status pesanan\n"
         "• /broadcast `<pesan>` — Broadcast pesan ke user\n\n"
-        f"🌐 *Web Admin Panel:* `{config.get_public_url()}/admin`\n"
-        f"🔔 *Webhook URL (MacroDroid):* `{config.get_public_url()}/webhook/dana`"
+        f"🌐 *Web Admin Panel:* `{config.get_public_url()}{config.ADMIN_WEB_PATH}`\n"
+        f"🔔 *Webhook URL (MacroDroid):* `{config.get_public_url()}{config.DANA_WEBHOOK_PATH}`"
     )
     await message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 

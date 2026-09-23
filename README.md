@@ -55,8 +55,10 @@ Installer interaktif akan memandu Anda untuk mengisi:
 3. `Nama Toko` (contoh: IDLisensi)
 4. `QRIS_BASE_PAYLOAD` (hasil scan string QRIS DANA Bisnis Anda)
 5. `Nama Merchant DANA` (sesuai yang tertera di DANA)
-6. `Password Web Admin` (untuk login ke `/admin`)
-7. Pilihan Tunnel: **Cloudflare Quick Tunnel (`try.cloudflare.com`)** (Gratis, rekomendasi) atau Custom Domain.
+6. `Password Web Admin` (untuk login ke Admin Panel)
+7. `Path Web Admin Panel` (kustomisasi URL admin, default: `/admin`, contoh: `/kelola`, `/panel`)
+8. `Path Webhook DANA` (kustomisasi URL webhook, default: `/webhook/dana`, contoh: `/api/dana`)
+9. Pilihan Tunnel: **Cloudflare Quick Tunnel (`try.cloudflare.com`)** (Gratis, rekomendasi) atau Custom Domain.
 
 Setelah wizard selesai, bot dan tunnel otomatis berjalan sebagai **systemd service** di background!
 
