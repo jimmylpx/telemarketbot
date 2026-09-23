@@ -153,6 +153,11 @@ def shutil_which(cmd: str) -> Optional[str]:
 
 def main():
     logger.info("Memulai Cloudflare Tunnel Manager...")
+    if TUNNEL_URL_FILE.exists():
+        try:
+            TUNNEL_URL_FILE.unlink()
+        except Exception:
+            pass
     env_vars = load_env_vars()
 
     port = int(env_vars.get("WEBHOOK_PORT", 8085))
