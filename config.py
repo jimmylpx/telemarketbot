@@ -49,7 +49,7 @@ PAYMENT_NAME: str = _get_env("PAYMENT_NAME", MERCHANT_NAME)
 # Webhook & Tunnel
 WEBHOOK_HOST: str = _get_env("WEBHOOK_HOST", "0.0.0.0")
 WEBHOOK_PORT: int = _get_int_env("WEBHOOK_PORT", 8085)
-WEBHOOK_SECRET: str = _get_env("WEBHOOK_SECRET", "bottele_dana_secret_2026")
+WEBHOOK_SECRET: str = _get_env("WEBHOOK_SECRET", "")
 PUBLIC_URL: str = _get_env("PUBLIC_URL", "https://bottele.bijiflix2.dpdns.org")
 USE_CLOUDFLARE_TUNNEL: bool = _get_env("USE_CLOUDFLARE_TUNNEL", "false").lower() in ("true", "1", "yes")
 ORDER_EXPIRE_MINUTES: int = _get_int_env("ORDER_EXPIRE_MINUTES", 30)

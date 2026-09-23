@@ -89,12 +89,12 @@ Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer
          {
            "title": "{not_title}",
            "text": "{notification}",
-           "secret": "bottele_dana_secret_2026"
+           "secret": "TOKEN_WEBHOOK_RAHASIA_ANDA"
          }
          ```
        - *Catatan:*
          - `{not_title}` dan `{notification}` adalah tag magic variable MacroDroid (dapat dipilih via menu `...` di pojok kanan textfield).
-         - Nilai `"secret"` harus cocok dengan `WEBHOOK_SECRET` di `.env` (default: `bottele_dana_secret_2026`).
+         - Ganti `TOKEN_WEBHOOK_RAHASIA_ANDA` dengan nilai `WEBHOOK_SECRET` yang dibuat saat instalasi (terdapat di file `.env`).
 3. Simpan dan aktifkan Makro.
 4. Lakukan uji coba transfer QRIS Rp 1.000. Bot akan otomatis mengenali nominal unik dan mengirimkan produk ke pembeli!
 

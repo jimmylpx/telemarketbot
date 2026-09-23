@@ -93,17 +93,10 @@ async def handle_dana_webhook(request: web.Request) -> web.Response:
             logger.warning("Gagal membaca payload webhook: %s", exc)
             return web.json_response({"success": False, "error": "Invalid payload format"}, status=400)
 
-    # Validasi secret token: terima dari .env, default bottele, session secret, dll.
+    # Validasi secret token: validasi ketat sesuai WEBHOOK_SECRET dari .env
     provided_secret = str(data.get("secret", "")).strip()
-    allowed_secrets = {s.strip() for s in [
-        getattr(config, "WEBHOOK_SECRET", None),
-        "bottele_dana_secret_2026",
-        getattr(config, "ADMIN_SESSION_SECRET", None),
-        "0978c8711d4158469f6d1495d048613c"
-    ] if s and s.strip()}
-
-    if allowed_secrets and provided_secret not in allowed_secrets:
-        logger.warning("Webhook ditolak: invalid secret '%s' (allowed: %s)", provided_secret, allowed_secrets)
+    if config.WEBHOOK_SECRET and provided_secret != config.WEBHOOK_SECRET:
+        logger.warning("Webhook ditolak: invalid secret '%s'", provided_secret)
         return web.json_response({"success": False, "error": "Forbidden: invalid secret"}, status=403)
 
     title = str(data.get("title", ""))
