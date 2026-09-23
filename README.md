@@ -49,7 +49,7 @@ Pada wizard instalasi, Anda akan diminta mengisi:
 1. `TELEGRAM_BOT_TOKEN` (dari @BotFather)
 2. `ADMIN_USER_ID` (ID Telegram admin dari @userinfobot)
 3. `Nama Toko` (nama toko yang tampil di bot dan chat pelanggan)
-4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan barcode QRIS DANA Bisnis Anda)
+4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan QRIS DANA Bisnis Anda, atau upload gambar QRIS Anda ke https://qris-dana-converter.vercel.app/ untuk mengekstrak string payload-nya)
 5. `Nama Merchant DANA` (sesuai nama toko pada aplikasi DANA)
 6. `Password Web Admin` (untuk login ke dashboard admin)
 7. `Path Web Admin Panel` (default: `/admin`, dapat diganti misalnya `/kelola` atau `/panel`)

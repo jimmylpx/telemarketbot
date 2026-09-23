@@ -129,11 +129,14 @@ done
 
 # Payload QRIS DANA Bisnis
 echo -e "\n${YELLOW}Petunjuk QRIS DANA Bisnis:${NC}"
-echo "Scan QRIS statis DANA Bisnis Anda menggunakan aplikasi scanner barcode,"
-echo "lalu copy teks hasilnya (format EMVCo, diawali 000201010211...)"
+echo "Jika Anda belum tahu string payload QRIS Anda, buka:"
+echo -e "  ${CYAN}https://qris-dana-converter.vercel.app/${NC}"
+echo "Cukup upload gambar QRIS statis DANA Bisnis Anda untuk mendapatkan payload secara instan,"
+echo "atau scan gambar QRIS Anda menggunakan aplikasi QR Scanner (format EMVCo diawali 000201010211...)."
 read -rp "$(echo -e "${BOLD}4. Masukkan QRIS_BASE_PAYLOAD DANA Bisnis: ${NC}")" INP_QRIS_PAYLOAD
 while [ -z "$INP_QRIS_PAYLOAD" ]; do
     echo -e "${RED}QRIS_BASE_PAYLOAD tidak boleh kosong!${NC}"
+    echo -e "Dapatkan payload dengan upload gambar QRIS ke: ${CYAN}https://qris-dana-converter.vercel.app/${NC}"
     read -rp "Masukkan QRIS_BASE_PAYLOAD: " INP_QRIS_PAYLOAD
 done
 
