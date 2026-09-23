@@ -193,17 +193,36 @@ def run_interactive_setup():
 
     env_vars = load_env()
     default_port = int(env_vars.get("WEBHOOK_PORT", 8085))
+    saved_token = env_vars.get("CLOUDFLARE_API_TOKEN", "").strip()
+    saved_email = env_vars.get("CLOUDFLARE_AUTH_EMAIL", "").strip()
 
-    api_token = input("Masukkan Cloudflare API Token / Global API Key: ").strip()
+    api_token = ""
+    email = None
+
+    if saved_token:
+        masked = saved_token[:6] + "..." + saved_token[-4:] if len(saved_token) > 10 else "***"
+        print(f"[*] Kredensial Cloudflare tersimpan ditemukan: {masked}" + (f" ({saved_email})" if saved_email else ""))
+        use_saved = input("Gunakan kredensial tersimpan ini? (Y/n, atau ketik token baru): ").strip()
+        if use_saved.lower() in ["y", ""]:
+            api_token = saved_token
+            email = saved_email if saved_email else None
+        elif use_saved.lower() != "n":
+            api_token = use_saved
+
+    if not api_token:
+        api_token = input("Masukkan Cloudflare API Token / Global API Key: ").strip()
     if not api_token:
         print("[-] Token tidak boleh kosong!")
         return False
 
     is_hex_37 = len(api_token) == 37 and all(c in "0123456789abcdefABCDEF" for c in api_token)
-    email = None
-    if is_hex_37:
+    if is_hex_37 and not email:
         print("[*] Terdeteksi format Global API Key (37 karakter hex).")
-        email = input("Masukkan Email Akun Cloudflare Anda: ").strip()
+        if saved_email:
+            email_inp = input(f"Masukkan Email Akun Cloudflare Anda (Default: {saved_email}): ").strip()
+            email = email_inp if email_inp else saved_email
+        else:
+            email = input("Masukkan Email Akun Cloudflare Anda: ").strip()
 
     print("\n[*] Menghubungi Cloudflare API...")
     try:
