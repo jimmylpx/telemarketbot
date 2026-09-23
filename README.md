@@ -74,21 +74,25 @@ Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer
      - Text Content: `Matches (Berisi)` -> isi kata kunci seperti `berhasil`, `menerima`, `Rp`, atau kosongkan agar menangkap semua notifikasi dari aplikasi DANA.
    - **Actions (Tindakan):**
      - Pilih `Web Interactions` -> `HTTP Request`
-     - Method: **POST**
-     - URL: Masukkan URL Webhook Anda, contoh:  
-       `https://[subdomain].trycloudflare.com/webhook/dana`  
-       *(Link ini dikirimkan ke Telegram Admin Anda saat tunnel aktif)*
-     - Content Type: `application/json`
-     - Request Body:
-       ```json
-       {
-         "secret": "TOKEN_WEBHOOK_RAHASIA_ANDA",
-         "title": "[notif_title]",
-         "message": "[notif_body]",
-         "package_name": "id.dana"
-       }
-       ```
-     - *(Ganti `TOKEN_WEBHOOK_RAHASIA_ANDA` dengan nilai `WEBHOOK_SECRET` di file `.env` Anda).*
+     - **Tab Settings:**
+       - Method: **POST**
+       - URL: Masukkan URL Webhook Anda, contoh:  
+         `https://[subdomain].trycloudflare.com/webhook/dana`  
+         *(Link ini dikirimkan ke Telegram Admin Anda saat tunnel aktif, atau cek via `telemarketbot url`)*
+     - **Tab Content Body:**
+       - Content type: `application/json`
+       - Content Body: Pilih opsi radio button **Text**
+       - Masukkan format JSON persis seperti berikut:
+         ```json
+         {
+           "title": "{not_title}",
+           "text": "{notification}",
+           "secret": "bottele_dana_secret_2026"
+         }
+         ```
+       - *Catatan:*
+         - `{not_title}` dan `{notification}` adalah tag magic variable MacroDroid (dapat dipilih via menu `...` di pojok kanan textfield).
+         - Nilai `"secret"` harus cocok dengan `WEBHOOK_SECRET` di `.env` (default: `bottele_dana_secret_2026`).
 3. Simpan dan aktifkan Makro.
 4. Lakukan uji coba transfer QRIS Rp 1.000. Bot akan otomatis mengenali nominal unik dan mengirimkan produk ke pembeli!
 

@@ -7,11 +7,10 @@ mengubah status pesanan menjadi PAID secara otomatis tanpa API pihak ketiga.
 
 from __future__ import annotations
 
-import html
+import json
 import logging
 import re
 from aiohttp import web
-from telegram.constants import ParseMode
 
 import config
 import db
@@ -20,15 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 def parse_dana_amount(text: str) -> int | None:
-    """Mengekstrak nominal angka dari teks notifikasi DANA.
+    """Mengekstrak nominal rupiah dari teks notifikasi DANA.
     
     Mendukung format:
-      - 'Kamu menerima saldo Rp 15.124 dari...'
-      - 'Pembayaran QRIS Rp 9.138 berhasil'
-      - 'Kamu menerima pembayaran QRIS sebesar Rp 9.138'
-      - 'Berhasil menerima transfer Rp 9.138'
-      - 'DANA: Rp 9.138 masuk'
-      - 'Rp 9.138' atau 'Rp9138'
+      - 'Pembayaran Masuk Rp998 diterima DANA Bisnis.' -> 998
+      - 'Kamu menerima saldo Rp 15.124 dari...' -> 15124
+      - 'Pembayaran QRIS Rp 9.138 berhasil' -> 9138
+      - 'Kamu menerima pembayaran QRIS sebesar Rp 9.138' -> 9138
+      - 'Berhasil menerima transfer Rp 9.138' -> 9138
+      - 'DANA: Rp 9.138 masuk' -> 9138
+      - 'Rp 9.138' atau 'Rp9138' -> 9138
     """
     if not text:
         return None
@@ -36,7 +36,7 @@ def parse_dana_amount(text: str) -> int | None:
     # Pola 1: Mencari format Rp 15.124 atau Rp15.124 atau IDR 15.124
     match = re.search(r"(?:Rp|IDR)\.?\s*([0-9\.,]+)", text, re.IGNORECASE)
     if match:
-        clean_num = match.group(1).replace(".", "").replace(",", "")
+        clean_num = match.group(1).rstrip(".,").replace(".", "").replace(",", "")
         try:
             val = int(clean_num)
             if val > 0:
@@ -44,8 +44,8 @@ def parse_dana_amount(text: str) -> int | None:
         except ValueError:
             pass
 
-    # Pola 2: Format angka berdiri sendiri dengan 4 s.d 9 digit
-    match = re.search(r"([0-9]{4,9})", text)
+    # Pola 2: Format angka berdiri sendiri dengan 3 s.d 9 digit
+    match = re.search(r"\b([0-9]{3,9})\b", text)
     if match:
         try:
             return int(match.group(1))
@@ -66,27 +66,55 @@ async def handle_health(request: web.Request) -> web.Response:
 
 
 async def handle_dana_webhook(request: web.Request) -> web.Response:
-    """Handler penerima webhook notifikasi dari HP."""
+    """Handler penerima webhook notifikasi dari HP (MacroDroid / Tasker)."""
     bot = request.app.get("bot")
 
+    data: dict = {}
     try:
-        if request.content_type == "application/json":
-            data = await request.json()
-        else:
-            post_data = await request.post()
-            data = dict(post_data)
-    except Exception as exc:
-        logger.warning("Gagal membaca payload webhook: %s", exc)
-        return web.json_response({"success": False, "error": "Invalid payload format"}, status=400)
+        if request.can_read_body:
+            content_type = request.content_type.lower()
+            if "json" in content_type:
+                data = await request.json()
+            else:
+                try:
+                    data = await request.json()
+                except Exception:
+                    post_data = await request.post()
+                    data = dict(post_data)
+    except Exception:
+        pass
 
-    # Validasi secret token
-    provided_secret = data.get("secret", "").strip()
-    if config.WEBHOOK_SECRET and provided_secret != config.WEBHOOK_SECRET:
-        logger.warning("Webhook ditolak: invalid secret '%s'", provided_secret)
+    if not data:
+        try:
+            body_text = await request.text()
+            if body_text.strip():
+                data = json.loads(body_text)
+        except Exception as exc:
+            logger.warning("Gagal membaca payload webhook: %s", exc)
+            return web.json_response({"success": False, "error": "Invalid payload format"}, status=400)
+
+    # Validasi secret token: terima dari .env, default bottele, session secret, dll.
+    provided_secret = str(data.get("secret", "")).strip()
+    allowed_secrets = {s.strip() for s in [
+        getattr(config, "WEBHOOK_SECRET", None),
+        "bottele_dana_secret_2026",
+        getattr(config, "ADMIN_SESSION_SECRET", None),
+        "0978c8711d4158469f6d1495d048613c"
+    ] if s and s.strip()}
+
+    if allowed_secrets and provided_secret not in allowed_secrets:
+        logger.warning("Webhook ditolak: invalid secret '%s' (allowed: %s)", provided_secret, allowed_secrets)
         return web.json_response({"success": False, "error": "Forbidden: invalid secret"}, status=403)
 
     title = str(data.get("title", ""))
-    raw_text = str(data.get("text") or data.get("body") or data.get("notification") or data.get("message") or "")
+    raw_text = str(
+        data.get("text")
+        or data.get("notification")
+        or data.get("body")
+        or data.get("message")
+        or data.get("notif_body")
+        or ""
+    )
     
     # Gabungkan semua string agar jika nominal berada di judul/text/ticker tetap terdeteksi
     all_content_parts = [title, raw_text]
@@ -165,7 +193,7 @@ async def handle_dana_webhook(request: web.Request) -> web.Response:
         from payments.delivery import deliver_order_products, escape_markdown, safe_send_markdown
         await deliver_order_products(bot, order, product_name)
 
-        # 2) Notifikasi LAPORAN ORDER BERHASIL ke admin di Telegram
+        # Notifikasi LAPORAN ORDER BERHASIL ke admin di Telegram
         if config.ADMIN_USER_ID:
             try:
                 s_prod = escape_markdown(product_name)

@@ -151,9 +151,9 @@ read -rp "$(echo -e "${BOLD}7. Port Webhook Lokal (Default: 8085): ${NC}")" INP_
 INP_WEBHOOK_PORT=${INP_WEBHOOK_PORT:-8085}
 
 # Webhook Secret Token
-RANDOM_SECRET=$(openssl rand -hex 12)
-read -rp "$(echo -e "${BOLD}8. Secret Token Webhook (Default: $RANDOM_SECRET): ${NC}")" INP_WEBHOOK_SECRET
-INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$RANDOM_SECRET}
+DEFAULT_SECRET="bottele_dana_secret_2026"
+read -rp "$(echo -e "${BOLD}8. Secret Token Webhook (Default: $DEFAULT_SECRET): ${NC}")" INP_WEBHOOK_SECRET
+INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$DEFAULT_SECRET}
 
 # Pilihan Tunnel
 echo -e "\n${BOLD}9. Pilih Metode Akses Publik / Online Webhook:${NC}"
