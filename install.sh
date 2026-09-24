@@ -160,9 +160,9 @@ case "$INP_ADMIN_PATH" in
     *) INP_ADMIN_PATH="/$INP_ADMIN_PATH" ;;
 esac
 
-# Path URL Webhook DANA
-read -rp "$(echo -e "${BOLD}8. Path URL Webhook QRIS (Default: /webhook/dana): ${NC}")" INP_WEBHOOK_PATH
-INP_WEBHOOK_PATH=${INP_WEBHOOK_PATH:-/webhook/dana}
+# Path URL Webhook QRIS
+read -rp "$(echo -e "${BOLD}8. Path URL Webhook QRIS (Default: /webhook/qris): ${NC}")" INP_WEBHOOK_PATH
+INP_WEBHOOK_PATH=${INP_WEBHOOK_PATH:-/webhook/qris}
 case "$INP_WEBHOOK_PATH" in
     /*) ;;
     *) INP_WEBHOOK_PATH="/$INP_WEBHOOK_PATH" ;;

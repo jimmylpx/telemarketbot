@@ -225,8 +225,8 @@ def create_webhook_app(bot) -> web.Application:
     app.router.add_get("/health", handle_health)
 
     # Webhook routes (Dukungan path dinamis & alias umum)
-    target_wh = getattr(config, "WEBHOOK_PATH", "/webhook/dana")
-    routes_to_add = {target_wh, "/webhook/dana", "/webhook"}
+    target_wh = getattr(config, "WEBHOOK_PATH", "/webhook/qris")
+    routes_to_add = {target_wh, "/webhook/qris", "/webhook/dana", "/webhook"}
     for p in routes_to_add:
         app.router.add_get(p, admin_web.handle_not_found)
         app.router.add_post(p, handle_mutation_webhook)

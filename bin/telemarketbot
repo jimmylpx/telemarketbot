@@ -114,9 +114,12 @@ cmd_status() {
         *) ADMIN_PATH="/$ADMIN_PATH" ;;
     esac
 
-    WEBHOOK_PATH="/webhook/dana"
+    WEBHOOK_PATH="/webhook/qris"
     if [ -f "$WORKDIR/.env" ]; then
-        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        ENV_WEBHOOK_PATH=$(grep "^WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -z "$ENV_WEBHOOK_PATH" ]; then
+            ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        fi
         if [ -n "$ENV_WEBHOOK_PATH" ]; then
             WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
         fi
@@ -232,9 +235,12 @@ cmd_url() {
         *) ADMIN_PATH="/$ADMIN_PATH" ;;
     esac
 
-    WEBHOOK_PATH="/webhook/dana"
+    WEBHOOK_PATH="/webhook/qris"
     if [ -f "$WORKDIR/.env" ]; then
-        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        ENV_WEBHOOK_PATH=$(grep "^WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -z "$ENV_WEBHOOK_PATH" ]; then
+            ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        fi
         if [ -n "$ENV_WEBHOOK_PATH" ]; then
             WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
         fi

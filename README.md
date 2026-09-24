@@ -42,7 +42,7 @@ Pada wizard instalasi, Anda akan diminta mengisi:
 5. `Nama Merchant` (sesuai nama toko pada QRIS)
 6. `Password Web Admin` (untuk login ke dashboard admin)
 7. `Path Web Admin Panel` (default: `/admin`, dapat diganti misalnya `/kelola` atau `/panel`)
-8. `Path Webhook QRIS` (default: `/webhook/dana`)
+8. `Path Webhook QRIS` (default: `/webhook/qris`)
 9. Metode Akses: Cloudflare Quick Tunnel (gratis, tanpa domain) atau Cloudflare Named Tunnel dengan Domain Sendiri
 
 Setelah instalasi selesai, layanan bot dan tunnel akan berjalan otomatis di background sebagai service systemd.
@@ -62,7 +62,7 @@ Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer
      - Pilih `Web Interactions` -> `HTTP Request`
      - **Tab Settings:**
        - Method: **POST**
-       - URL: Masukkan URL webhook bot Anda (contoh: `https://[subdomain].trycloudflare.com/webhook/dana`)
+       - URL: Masukkan URL webhook bot Anda (contoh: `https://[subdomain].trycloudflare.com/webhook/qris`)
      - **Tab Content Body:**
        - Content type: `application/json`
        - Content Body: Pilih **Text**

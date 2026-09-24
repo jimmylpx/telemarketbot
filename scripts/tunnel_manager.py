@@ -72,7 +72,7 @@ def update_env_public_url(new_url: str):
         logger.error("Gagal memperbarui PUBLIC_URL di .env: %s", exc)
 
 
-def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int, webhook_path: str = "/webhook/dana"):
+def send_telegram_notification(bot_token: str, admin_id: str, tunnel_url: str, port: int, webhook_path: str = "/webhook/qris"):
     """Mengirim pesan notifikasi link live tunnel ke admin via Telegram Bot API."""
     if not bot_token or not admin_id:
         logger.info("Bot token atau Admin ID tidak diset di .env, lewati notifikasi Telegram.")
@@ -211,7 +211,7 @@ def main():
                     if found_url != last_url:
                         last_url = found_url
                         fresh_env = load_env_vars()
-                        t_webhook_path = fresh_env.get("WEBHOOK_PATH", "/webhook/dana")
+                        t_webhook_path = fresh_env.get("WEBHOOK_PATH", fresh_env.get("DANA_WEBHOOK_PATH", "/webhook/qris"))
                         logger.info("==================================================")
                         logger.info("🚀 CLOUDFLARE QUICK TUNNEL LIVE: %s", found_url)
                         logger.info("⚙️  Admin Panel: %s/admin", found_url)
