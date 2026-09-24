@@ -8,8 +8,6 @@ dan menghitung ulang checksum CRC-16 (CCITT-FALSE).
 from __future__ import annotations
 
 import io
-import qrcode
-from PIL import Image
 
 
 def calculate_crc16(text: str) -> str:
@@ -67,6 +65,9 @@ def generate_dynamic_qris(base_qris: str, amount: int | float) -> str:
 
 def generate_qris_image_bytes(qris_payload: str) -> io.BytesIO:
     """Hasilkan gambar QR Code dalam bentuk BytesIO PNG siap kirim ke Telegram."""
+    import qrcode
+    from PIL import Image
+
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
