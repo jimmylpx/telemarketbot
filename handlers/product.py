@@ -206,7 +206,7 @@ async def ask_quantity(
     stock_path = get_product_stock_path(product)
     stock = get_stock_count(stock_path)
     if stock <= 0:
-        await query.answer("Maaf, stok produk ini sedang habis!", show_alert=True)
+        await query.answer("Maaf, stok produk ini sedang habis! Ketuk /subs untuk menerima notifikasi saat restock.", show_alert=True)
         return ConversationHandler.END
 
     context.user_data["pending"] = {"product": product}

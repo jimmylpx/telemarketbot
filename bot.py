@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder
 
 import config
 import db
-from handlers import start, product, myorders, admin
+from handlers import start, product, myorders, admin, subscribe
 from jobs import poller
 from payments.dana_webhook import create_webhook_app
 
@@ -26,6 +26,7 @@ async def on_startup(application):
         from telegram import BotCommand
         commands = [
             BotCommand("katalog", "Katalog produk & belanja"),
+            BotCommand("subs", "Notifikasi restock produk"),
             BotCommand("myorders", "Riwayat & status pesanan"),
             BotCommand("cs", "Hubungi Admin / CS (Bantuan Pembayaran)"),
             BotCommand("help", "Bantuan & info bot"),
@@ -94,6 +95,7 @@ def main():
     product.register(app)
     myorders.register(app)
     admin.register(app)
+    subscribe.register(app)
 
     # Job queue
     if app.job_queue is not None:

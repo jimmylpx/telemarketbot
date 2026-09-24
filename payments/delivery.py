@@ -304,3 +304,69 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
         return True
 
     return True
+
+
+async def notify_stock_subscribers(bot, product_id: int, added_count: int, total_stock: int) -> int:
+    """Kirim notifikasi otomatis ke semua pelanggan yang subscribe produk ini saat stok ditambahkan."""
+    if not bot or total_stock <= 0:
+        return 0
+
+    import db
+    product = db.get_product(product_id)
+    if not product:
+        return 0
+
+    subscribers = db.get_subscribers_for_product(product_id)
+    if not subscribers:
+        logger.info("Restock produk #%d '%s' (+%d unit), tidak ada subscriber.", product_id, product['name'], added_count)
+        return 0
+
+    logger.info("Restock produk #%d '%s' (+%d unit), mengirim notifikasi ke %d subscriber...", product_id, product['name'], added_count, len(subscribers))
+
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    from telegram.constants import ParseMode
+    import asyncio
+
+    prod_name = product['name']
+    price_val = product['price']
+    desc = product.get('description', '')
+
+    msg_text = (
+        "🔔 *STOK PRODUK TERSEDIA KEMBALI!*\n"
+        "\n"
+        f"Kabar baik! Stok untuk produk *{escape_markdown(prod_name)}* baru saja ditambahkan oleh Admin.\n"
+        "\n"
+        f"📦 *Produk:* {escape_markdown(prod_name)}\n"
+        f"💰 *Harga:* Rp {price_val:,}\n"
+        f"📊 *Stok Tersedia:* *{total_stock} unit*\n"
+    )
+    if desc:
+        msg_text += f"ℹ️ *Keterangan:* _{escape_markdown(desc)}_\n"
+
+    msg_text += (
+        "\n"
+        "⚡ _Segera pesan sekarang sebelum kehabisan!_\n"
+        "Ketuk perintah /katalog untuk langsung berbelanja."
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🛍️ Buka Katalog Produk", callback_data="catalog:open")],
+        [InlineKeyboardButton("🔕 Atur Notifikasi (/subs)", callback_data="subs:open")]
+    ])
+
+    sent_count = 0
+    for uid in subscribers:
+        try:
+            await bot.send_message(
+                chat_id=uid,
+                text=msg_text,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=keyboard,
+            )
+            sent_count += 1
+            await asyncio.sleep(0.05)
+        except Exception as exc:
+            logger.warning("Gagal kirim notifikasi restock ke user %s: %s", uid, exc)
+
+    logger.info("Selesai mengirim notifikasi restock #%d: berhasil %d dari %d subscriber.", product_id, sent_count, len(subscribers))
+    return sent_count

@@ -171,6 +171,8 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
         stk = get_stock_count(s_path)
         total_stock_count += stk
         type_badge = '<span class="badge badge-reg">Per Baris (Instant)</span>'
+        sub_cnt = db.count_subscribers_for_product(p['id'])
+        sub_badge = f'<br/><small style="color:#38bdf8;">🔔 {sub_cnt} peminat</small>' if sub_cnt > 0 else ''
         stk_badge = (
             f'<span class="badge badge-stock-ok">{stk} unit</span>'
             if stk > 0
@@ -186,7 +188,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             </td>
             <td>{type_badge}</td>
             <td>Rp {p['price']:,}</td>
-            <td>{stk_badge}</td>
+            <td>{stk_badge}{sub_badge}</td>
             <td><code class="file-path">{html.escape(s_path)}</code></td>
             <td class="action-btns">
                 <button class="btn btn-sm btn-info" onclick="openEditStock({p['id']}, '{html.escape(p['name'])}')">📝 Edit Stok TXT</button>
@@ -916,7 +918,15 @@ async def handle_save_product_stock(request: web.Request) -> web.Response:
     raw_content = str(data.get("stock_content", ""))
     lines = [l.strip() for l in raw_content.splitlines() if l.strip()]
     stock_path = get_product_stock_path(product)
+    prev_stock = get_stock_count(stock_path)
     save_stock_lines(stock_path, lines)
+    total_now = len(lines)
+    if total_now > prev_stock:
+        bot = request.app.get("bot")
+        if bot:
+            import asyncio
+            from payments.delivery import notify_stock_subscribers
+            asyncio.create_task(notify_stock_subscribers(bot, pid, total_now - prev_stock, total_now))
     logger.info("Admin mengedit langsung file stok #%d '%s': total %d unit disimpan", pid, product['name'], len(lines))
 
     raise web.HTTPFound(f"{admin_path}?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
@@ -961,6 +971,12 @@ async def handle_product_add(request: web.Request) -> web.Response:
 
     # 4. Update path stock_file di database
     db.update_product(new_pid, stock_file=stock_file_path)
+    if lines:
+        bot = request.app.get("bot")
+        if bot:
+            import asyncio
+            from payments.delivery import notify_stock_subscribers
+            asyncio.create_task(notify_stock_subscribers(bot, new_pid, len(lines), len(lines)))
     logger.info("Admin menambahkan produk baru: #%d '%s' (Rp %d, %d unit stok)", new_pid, name, price, len(lines))
 
     raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{new_pid}+'{name}'+berhasil+dibuat+dengan+{len(lines)}+unit+stok!")
@@ -988,6 +1004,11 @@ async def handle_product_restock(request: web.Request) -> web.Response:
 
     stock_path = get_product_stock_path(product)
     total_now = append_stock_lines(stock_path, lines)
+    bot = request.app.get("bot")
+    if bot:
+        import asyncio
+        from payments.delivery import notify_stock_subscribers
+        asyncio.create_task(notify_stock_subscribers(bot, pid, len(lines), total_now))
     logger.info("Admin restock produk #%d '%s': +%d unit (total sekarang: %d)", pid, product['name'], len(lines), total_now)
 
     raise web.HTTPFound(f"{admin_path}?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")

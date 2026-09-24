@@ -69,7 +69,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "ℹ️ *Bantuan & Panduan Bot*\n"
         "\n"
         "/katalog — Lihat & order produk\n"
-        "/myorders — Riwayat order & status pesanan\n"
+        "/subs — Pengaturan notifikasi saat stok produk ditambah\n/myorders — Riwayat order & status pesanan\n"
         "/cs — Hubungi Customer Service / Admin jika bot tidak merespon pembayaran\n"
         "/start — Menu utama\n"
         "\n"

@@ -38,6 +38,14 @@ CREATE TABLE IF NOT EXISTS users (
   last_seen TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS stock_subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  product_id INTEGER NOT NULL,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(user_id, product_id)
+);
+
 CREATE TABLE IF NOT EXISTS mutations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT,
@@ -376,3 +384,87 @@ def get_all_user_ids() -> list[int]:
 
 
 
+
+
+def add_stock_subscription(user_id: int, product_id: int) -> bool:
+    """Tambahkan langganan notifikasi stok untuk user dan produk."""
+    assert _conn is not None
+    cur = _conn.execute(
+        "INSERT OR IGNORE INTO stock_subscriptions (user_id, product_id) VALUES (?, ?)",
+        (user_id, product_id),
+    )
+    _conn.commit()
+    return cur.rowcount > 0
+
+
+def remove_stock_subscription(user_id: int, product_id: int) -> bool:
+    """Hapus langganan notifikasi stok untuk user dan produk."""
+    assert _conn is not None
+    cur = _conn.execute(
+        "DELETE FROM stock_subscriptions WHERE user_id = ? AND product_id = ?",
+        (user_id, product_id),
+    )
+    _conn.commit()
+    return cur.rowcount > 0
+
+
+def is_subscribed_to_stock(user_id: int, product_id: int) -> bool:
+    """Cek apakah user sudah berlangganan notifikasi untuk produk ini."""
+    assert _conn is not None
+    row = _conn.execute(
+        "SELECT 1 FROM stock_subscriptions WHERE user_id = ? AND product_id = ?",
+        (user_id, product_id),
+    ).fetchone()
+    return row is not None
+
+
+def get_user_stock_subscriptions(user_id: int) -> list[int]:
+    """Ambil daftar product_id yang disubscribe oleh user."""
+    assert _conn is not None
+    rows = _conn.execute(
+        "SELECT product_id FROM stock_subscriptions WHERE user_id = ? ORDER BY product_id ASC",
+        (user_id,),
+    ).fetchall()
+    return [int(r["product_id"]) for r in rows]
+
+
+def get_subscribers_for_product(product_id: int) -> list[int]:
+    """Ambil daftar user_id yang berlangganan notifikasi untuk produk ini."""
+    assert _conn is not None
+    rows = _conn.execute(
+        "SELECT user_id FROM stock_subscriptions WHERE product_id = ? ORDER BY id ASC",
+        (product_id,),
+    ).fetchall()
+    return [int(r["user_id"]) for r in rows]
+
+
+def count_subscribers_for_product(product_id: int) -> int:
+    """Hitung jumlah pelanggan yang berlangganan notifikasi produk ini."""
+    assert _conn is not None
+    row = _conn.execute(
+        "SELECT COUNT(*) FROM stock_subscriptions WHERE product_id = ?",
+        (product_id,),
+    ).fetchone()
+    return row[0] if row else 0
+
+
+def subscribe_all_products(user_id: int) -> int:
+    """Berlangganan ke semua produk aktif."""
+    assert _conn is not None
+    cur = _conn.execute(
+        "INSERT OR IGNORE INTO stock_subscriptions (user_id, product_id) SELECT ?, id FROM products",
+        (user_id,),
+    )
+    _conn.commit()
+    return cur.rowcount
+
+
+def unsubscribe_all_products(user_id: int) -> int:
+    """Hapus semua langganan produk untuk user ini."""
+    assert _conn is not None
+    cur = _conn.execute(
+        "DELETE FROM stock_subscriptions WHERE user_id = ?",
+        (user_id,),
+    )
+    _conn.commit()
+    return cur.rowcount
