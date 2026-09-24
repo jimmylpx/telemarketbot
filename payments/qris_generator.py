@@ -1,4 +1,4 @@
-"""Generator QRIS Dinamis dari QRIS Statis DANA Bisnis (EMVCo Standard).
+"""Generator QRIS Dinamis dari QRIS Statis Merchant (EMVCo Standard).
 
 Mengonversi payload QRIS Statis menjadi QRIS Dinamis dengan menyisipkan
 tag 54 (Transaction Amount), mengubah tag 01 (Point of Initiation) menjadi 12,

@@ -1,4 +1,4 @@
-"""Entry point Simpel Order Bot dengan DANA Notification Webhook."""
+"""Entry point Simpel Order Bot dengan QRIS Mutation Webhook."""
 
 import asyncio
 import logging
@@ -14,7 +14,7 @@ try:
 except ImportError:
     cid = None
 from jobs import poller
-from payments.dana_webhook import create_webhook_app
+from payments.webhook import create_webhook_app
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +42,14 @@ async def on_startup(application):
     except Exception as exc:
         logger.warning("Gagal mendaftarkan menu commands: %s", exc)
 
-    if config.DANA_AUTO_CHECK:
-        logger.info("Menjalankan DANA Webhook Server di %s:%d...", config.WEBHOOK_HOST, config.WEBHOOK_PORT)
+    if config.QRIS_AUTO_CHECK:
+        logger.info("Menjalankan QRIS Webhook Server di %s:%d...", config.WEBHOOK_HOST, config.WEBHOOK_PORT)
         webapp = create_webhook_app(application.bot)
         _webhook_runner = web.AppRunner(webapp)
         await _webhook_runner.setup()
         site = web.TCPSite(_webhook_runner, config.WEBHOOK_HOST, config.WEBHOOK_PORT)
         await site.start()
-        logger.info("DANA Webhook Server ONLINE di port %d (Publik: %s)",
+        logger.info("QRIS Webhook Server ONLINE di port %d (Publik: %s)",
                     config.WEBHOOK_PORT, config.get_public_url())
 
 
@@ -57,9 +57,9 @@ async def on_shutdown(application):
     """Callback saat bot berhenti."""
     global _webhook_runner
     if _webhook_runner is not None:
-        logger.info("Menghentikan DANA Webhook Server...")
+        logger.info("Menghentikan QRIS Webhook Server...")
         await _webhook_runner.cleanup()
-        logger.info("DANA Webhook Server telah berhenti.")
+        logger.info("QRIS Webhook Server telah berhenti.")
 
 
 def main():

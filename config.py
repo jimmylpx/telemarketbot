@@ -1,4 +1,4 @@
-"""Konfigurasi bot order telegram dan DANA Webhook."""
+"""Konfigurasi bot order telegram dan QRIS Webhook."""
 
 import os
 from pathlib import Path
@@ -37,16 +37,18 @@ ADMIN_CONTACT: str = _get_env("ADMIN_CONTACT", "").strip()
 SHOP_NAME: str = _get_env("SHOP_NAME", "Toko DANA Bot")
 DB_PATH: str = _resolve_path("DB_PATH", "data/bot.db")
 
-# QRIS DANA Bisnis (Dinamis Otomatis)
-DANA_AUTO_CHECK: bool = _get_env("DANA_AUTO_CHECK", "true").lower() in ("true", "1", "yes")
+# QRIS Dinamis Otomatis (GoPay Merchant, DANA Bisnis, Bank, dsb)
+QRIS_AUTO_CHECK: bool = _get_env("QRIS_AUTO_CHECK", _get_env("DANA_AUTO_CHECK", "true")).lower() in ("true", "1", "yes")
+DANA_AUTO_CHECK: bool = QRIS_AUTO_CHECK  # Alias backward compatibility
+
 QRIS_BASE_PAYLOAD: str = _get_env(
     "QRIS_BASE_PAYLOAD",
-    "00020101021126570011ID.DANA.WWW011893600915304267225902090426722590303UKE51440014ID.CO.QRIS.WWW0215ID10200329284720303UKE5204581353033605802ID5920WARUNG KEMIRI RAYA 16014Kota Palembang6105301156304D909"
+    "00020101021126610014COM.GO-JEK.WWW01189360091436257905280210G6257905280303UMI51440014ID.CO.QRIS.WWW0215ID10266017203150303UMI5204899953033605802ID5909IDLisensi6014KONAWE SELATAN61059387062070703A0163043042"
 )
 MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "IDLisensi")
 
 # Fallback info pembayaran manual jika diperlukan
-PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS DANA Bisnis")
+PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS (Semua E-Wallet & Bank)")
 PAYMENT_NUMBER: str = _get_env("PAYMENT_NUMBER", "QRIS Dinamis")
 PAYMENT_NAME: str = _get_env("PAYMENT_NAME", MERCHANT_NAME)
 
@@ -54,6 +56,8 @@ PAYMENT_NAME: str = _get_env("PAYMENT_NAME", MERCHANT_NAME)
 WEBHOOK_HOST: str = _get_env("WEBHOOK_HOST", "0.0.0.0")
 WEBHOOK_PORT: int = _get_int_env("WEBHOOK_PORT", 8085)
 WEBHOOK_SECRET: str = _get_env("WEBHOOK_SECRET", "bottele_dana_secret_2026")
+WEBHOOK_PATH: str = _clean_path(_get_env("WEBHOOK_PATH", _get_env("DANA_WEBHOOK_PATH", "/webhook/dana")), "/webhook/dana")
+DANA_WEBHOOK_PATH: str = WEBHOOK_PATH  # Alias backward compatibility
 PUBLIC_URL: str = _get_env("PUBLIC_URL", "https://bottele.bijiflix2.dpdns.org")
 USE_CLOUDFLARE_TUNNEL: bool = _get_env("USE_CLOUDFLARE_TUNNEL", "false").lower() in ("true", "1", "yes")
 ORDER_EXPIRE_MINUTES: int = _get_int_env("ORDER_EXPIRE_MINUTES", 30)

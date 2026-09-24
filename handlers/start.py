@@ -52,8 +52,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"👋 Halo {first_name}!\n"
         "\n"
         f"Selamat datang di *{config.SHOP_NAME}*.\n"
-        "Ketuk /katalog untuk order produk, /myorders untuk orderan kamu, "
-        "/cs jika butuh bantuan admin, atau /help untuk bantuan lengkap."
+        "Ketuk /katalog untuk order produk, /cid untuk aktivasi Confirmation ID, /myorders untuk orderan kamu, "
+        "/cs jika butuh bantuan admin, atau /help untuk bantuan."
     )
 
     await message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
@@ -69,11 +69,12 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "ℹ️ *Bantuan & Panduan Bot*\n"
         "\n"
         "/katalog — Lihat & order produk\n"
+        "/cid — Aktivasi Confirmation ID (CID) & OCR\n"
         "/subs — Pengaturan notifikasi saat stok produk ditambah\n/myorders — Riwayat order & status pesanan\n"
         "/cs — Hubungi Customer Service / Admin jika bot tidak merespon pembayaran\n"
         "/start — Menu utama\n"
         "\n"
-        "Pembayaran otomatis terverifikasi via QRIS / DANA Bisnis. "
+        "Pembayaran otomatis terverifikasi via QRIS (Semua E-Wallet & Mobile Banking). "
         "Jika ada kendala transfer, silakan gunakan perintah /cs."
     )
 
@@ -125,7 +126,7 @@ async def cmd_cs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "📋 *Format Pengaduan Pembayaran:*\n"
         "Agar kendala Anda dapat segera diproses, mohon kirimkan:\n"
         "1. *Order ID* (Cek melalui perintah /myorders)\n"
-        "2. *Bukti Screenshot* struk transfer DANA / QRIS\n"
+        "2. *Bukti Screenshot* struk transfer / pembayaran QRIS\n"
         "3. *Nominal persis* yang Anda bayarkan\n"
         "\n"
         "Silakan klik tombol di bawah untuk langsung membuka chat dengan Admin Telegram 👇"

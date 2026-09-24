@@ -277,7 +277,7 @@ async def receive_quantity_callback(
         return QTY
 
     base_total = product["price"] * qty
-    if config.DANA_AUTO_CHECK:
+    if config.QRIS_AUTO_CHECK:
         final_total, discount = db.get_discounted_unique_total(base_total)
     else:
         final_total = base_total
@@ -371,7 +371,7 @@ async def receive_quantity(
         return QTY
 
     base_total = product["price"] * qty
-    if config.DANA_AUTO_CHECK:
+    if config.QRIS_AUTO_CHECK:
         final_total, discount = db.get_discounted_unique_total(base_total)
     else:
         final_total = base_total
@@ -485,7 +485,7 @@ async def handle_confirm(
 
     context.user_data.clear()
 
-    # 2) Siapkan info pembayaran & QRIS Dinamis DANA
+    # 2) Siapkan info pembayaran & QRIS Dinamis
     kode_unik = pending.get("kode_unik", 0)
     base_total = pending.get("base_total", pending["total"])
     final_total = pending["total"]
@@ -523,7 +523,7 @@ async def handle_confirm(
         "Cek status pesanan Anda di /myorders. Jika bot belum respon setelah transfer, ketik /cs untuk hubungi Admin."
     )
 
-    # Generate QRIS Dinamis dari QRIS Statis DANA Bisnis
+    # Generate QRIS Dinamis dari QRIS Statis
     if config.QRIS_BASE_PAYLOAD:
         try:
             from payments.qris_generator import generate_dynamic_qris, generate_qris_image_bytes
@@ -543,7 +543,7 @@ async def handle_confirm(
                 f"🏪 Merchant: *{config.MERCHANT_NAME}*\n"
                 "\n"
                 "📲 *Cara Pembayaran:*\n"
-                "1. Scan kode QRIS di atas dengan aplikasi *DANA*, GoPay, OVO, ShopeePay, BCA, atau m-Banking Anda.\n"
+                "1. Scan kode QRIS di atas dengan aplikasi m-Banking (BCA, Mandiri, BRI, BNI) atau e-Wallet (GoPay, DANA, OVO, ShopeePay).\n"
                 f"2. Nominal *Rp {format_rupiah(final_total)}* akan *otomatis terisi* di aplikasi Anda (tidak perlu ketik manual).\n"
                 "3. Selesaikan pembayaran.\n"
                 "\n"

@@ -64,7 +64,7 @@ async def watch_stock_changes(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def cleanup_expired_orders(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """JobQueue callback: batalkan order DANA / manual yang melewati batas waktu."""
+    """JobQueue callback: batalkan order QRIS / manual yang melewati batas waktu."""
     try:
         expired = db.expire_pending_orders(minutes=config.ORDER_EXPIRE_MINUTES)
         for order in expired:

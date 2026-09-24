@@ -1,4 +1,4 @@
-"""SQLite database layer dengan dukungan Kode Unik & Mutasi DANA."""
+"""SQLite database layer dengan dukungan Kode Unik & Mutasi QRIS."""
 
 from __future__ import annotations
 
@@ -90,6 +90,7 @@ def init_db(path: str) -> None:
     except sqlite3.OperationalError:
         pass
     try:
+        _conn.execute("UPDATE products SET product_type = 'office_cid', stock_file = '/home/servermax/bottele/office2021.txt' WHERE id = 2 AND (stock_file IS NULL OR stock_file = '')")
         _conn.execute("UPDATE products SET product_type = 'regular' WHERE id = 1 AND (product_type IS NULL OR product_type = '')")
         _conn.commit()
     except Exception:
@@ -274,7 +275,7 @@ def get_pending_qris_orders() -> list[dict]:
     return [_row_to_dict(r) for r in rows]
 
 
-# DANA Mutation matching helpers
+# QRIS Mutation matching helpers
 def get_discounted_unique_total(base_amount: int) -> tuple[int, int]:
     """
     Menghasilkan (final_amount, discount) dengan ketentuan:
