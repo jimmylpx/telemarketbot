@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder
 
 import config
 import db
-from handlers import start, product, myorders, admin, subscribe
+from handlers import start, product, myorders, admin, subscribe, cid
 from jobs import poller
 from payments.dana_webhook import create_webhook_app
 
@@ -26,11 +26,12 @@ async def on_startup(application):
         from telegram import BotCommand
         commands = [
             BotCommand("katalog", "Katalog produk & belanja"),
+            BotCommand("cid", "GetCID Office / Windows"),
             BotCommand("subs", "Notifikasi restock produk"),
             BotCommand("myorders", "Riwayat & status pesanan"),
             BotCommand("cs", "Hubungi Admin / CS (Bantuan Pembayaran)"),
-            BotCommand("help", "Bantuan & info bot"),
-            BotCommand("start", "Menu utama bot"),
+            BotCommand("help", "Bantuan & panduan bot"),
+            BotCommand("start", "Mulai bot / Menu utama"),
         ]
         await application.bot.set_my_commands(commands)
     except Exception as exc:
@@ -81,8 +82,6 @@ def main():
         web.run_app(webapp, host=config.WEBHOOK_HOST, port=config.WEBHOOK_PORT)
         return
 
-
-
     app = (
         ApplicationBuilder()
         .token(config.BOT_TOKEN)
@@ -96,6 +95,7 @@ def main():
     myorders.register(app)
     admin.register(app)
     subscribe.register(app)
+    cid.register(app)
 
     # Job queue
     if app.job_queue is not None:
@@ -116,8 +116,6 @@ def main():
             name="watch_stock_changes",
         )
         logger.info("Job stock watcher aktif (interval 60 detik)")
-
-
 
     logger.info("Bot Telegram mulai polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

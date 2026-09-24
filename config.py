@@ -39,8 +39,11 @@ DB_PATH: str = _resolve_path("DB_PATH", "data/bot.db")
 
 # QRIS DANA Bisnis (Dinamis Otomatis)
 DANA_AUTO_CHECK: bool = _get_env("DANA_AUTO_CHECK", "true").lower() in ("true", "1", "yes")
-QRIS_BASE_PAYLOAD: str = _get_env("QRIS_BASE_PAYLOAD", "")
-MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "Merchant DANA")
+QRIS_BASE_PAYLOAD: str = _get_env(
+    "QRIS_BASE_PAYLOAD",
+    "00020101021126570011ID.DANA.WWW011893600915304267225902090426722590303UKE51440014ID.CO.QRIS.WWW0215ID10200329284720303UKE5204581353033605802ID5920WARUNG KEMIRI RAYA 16014Kota Palembang6105301156304D909"
+)
+MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "WARUNG KEMIRI RAYA 1")
 
 # Fallback info pembayaran manual jika diperlukan
 PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS DANA Bisnis")
@@ -50,8 +53,8 @@ PAYMENT_NAME: str = _get_env("PAYMENT_NAME", MERCHANT_NAME)
 # Webhook & Tunnel
 WEBHOOK_HOST: str = _get_env("WEBHOOK_HOST", "0.0.0.0")
 WEBHOOK_PORT: int = _get_int_env("WEBHOOK_PORT", 8085)
-WEBHOOK_SECRET: str = _get_env("WEBHOOK_SECRET", "")
-PUBLIC_URL: str = _get_env("PUBLIC_URL", "https://try.cloudflare.com")
+WEBHOOK_SECRET: str = _get_env("WEBHOOK_SECRET", "bottele_dana_secret_2026")
+PUBLIC_URL: str = _get_env("PUBLIC_URL", "https://bottele.bijiflix2.dpdns.org")
 USE_CLOUDFLARE_TUNNEL: bool = _get_env("USE_CLOUDFLARE_TUNNEL", "false").lower() in ("true", "1", "yes")
 ORDER_EXPIRE_MINUTES: int = _get_int_env("ORDER_EXPIRE_MINUTES", 30)
 
@@ -69,9 +72,6 @@ def get_public_url() -> str:
     return PUBLIC_URL
 
 
-
-
-
 # Auto-Delivery Stock Config
 STOCK_FILE_PATH: str = _resolve_path("STOCK_FILE_PATH", "data/stocks/stock_default.txt")
 ORDERS_DIR: str = _resolve_path("ORDERS_DIR", "orders")
@@ -87,16 +87,3 @@ GEMINI_OCR_MODEL: str = _get_env("GEMINI_OCR_MODEL", "gemini-3.5-flash-lite")
 # Admin Web Panel Config
 ADMIN_WEB_PASSWORD: str = _get_env("ADMIN_WEB_PASSWORD", "paloco46")
 ADMIN_SESSION_SECRET: str = _get_env("ADMIN_SESSION_SECRET", "idlisensi_secret_panel_key_2026")
-
-
-def _clean_path(path_str: str, default: str) -> str:
-    p = path_str.strip()
-    if not p:
-        p = default
-    if not p.startswith("/"):
-        p = "/" + p
-    return p.rstrip("/") if p != "/" else "/"
-
-# Custom Paths untuk Admin Web Panel & DANA Webhook
-ADMIN_WEB_PATH: str = _clean_path(_get_env("ADMIN_WEB_PATH", "/admin"), "/admin")
-DANA_WEBHOOK_PATH: str = _clean_path(_get_env("DANA_WEBHOOK_PATH", "/webhook/dana"), "/webhook/dana")
