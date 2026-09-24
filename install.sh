@@ -140,7 +140,7 @@ while [ -z "$INP_QRIS_PAYLOAD" ]; do
     read -rp "Masukkan QRIS_BASE_PAYLOAD: " INP_QRIS_PAYLOAD
 done
 
-# Nama Merchant (Auto-detect Tag 59 dari Payload QRIS)
+# Nama Merchant (Otomatis diekstrak dari Tag 59 Payload QRIS, tidak bisa diubah manual agar QRIS selalu valid)
 DETECTED_MERCHANT=$(python3 -c "
 import sys
 p = sys.argv[1].strip()
@@ -162,25 +162,20 @@ while i < len(p):
 print(name)
 " "$INP_QRIS_PAYLOAD" 2>/dev/null || true)
 
+INP_MERCHANT_NAME="${DETECTED_MERCHANT:-IDLisensi}"
 if [ -n "$DETECTED_MERCHANT" ]; then
-    echo -e "${GREEN}[+] Terdeteksi Nama Merchant dari QRIS: ${BOLD}${DETECTED_MERCHANT}${NC}"
-    read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS (Default: ${DETECTED_MERCHANT}): ${NC}")" INP_MERCHANT_NAME
-    INP_MERCHANT_NAME=${INP_MERCHANT_NAME:-$DETECTED_MERCHANT}
+    echo -e "${GREEN}[+] Nama Merchant QRIS otomatis terdeteksi: ${BOLD}${DETECTED_MERCHANT}${NC} (dikunci dari payload)"
 else
-    read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS: ${NC}")" INP_MERCHANT_NAME
-    while [ -z "$INP_MERCHANT_NAME" ]; do
-        echo -e "${RED}Nama Merchant tidak boleh kosong!${NC}"
-        read -rp "Masukkan Nama Merchant: " INP_MERCHANT_NAME
-    done
+    echo -e "${YELLOW}[!] Tag 59 tidak ditemukan di QRIS payload, menggunakan default: ${BOLD}${INP_MERCHANT_NAME}${NC}"
 fi
 
 # Password Admin Web Panel
 RANDOM_PASS=$(openssl rand -base64 6 | tr -dc 'a-zA-Z0-9')
-read -rp "$(echo -e "${BOLD}6. Password Admin Web Panel (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
+read -rp "$(echo -e "${BOLD}5. Password Admin Web Panel (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
 INP_ADMIN_PASSWORD=${INP_ADMIN_PASSWORD:-$RANDOM_PASS}
 
 # Path URL Admin Web Panel
-read -rp "$(echo -e "${BOLD}7. Path URL Admin Web Panel (Default: /admin): ${NC}")" INP_ADMIN_PATH
+read -rp "$(echo -e "${BOLD}6. Path URL Admin Web Panel (Default: /admin): ${NC}")" INP_ADMIN_PATH
 INP_ADMIN_PATH=${INP_ADMIN_PATH:-/admin}
 case "$INP_ADMIN_PATH" in
     /*) ;;
@@ -188,7 +183,7 @@ case "$INP_ADMIN_PATH" in
 esac
 
 # Path URL Webhook QRIS
-read -rp "$(echo -e "${BOLD}8. Path URL Webhook QRIS (Default: /webhook/qris): ${NC}")" INP_WEBHOOK_PATH
+read -rp "$(echo -e "${BOLD}7. Path URL Webhook QRIS (Default: /webhook/qris): ${NC}")" INP_WEBHOOK_PATH
 INP_WEBHOOK_PATH=${INP_WEBHOOK_PATH:-/webhook/qris}
 case "$INP_WEBHOOK_PATH" in
     /*) ;;
@@ -196,16 +191,16 @@ case "$INP_WEBHOOK_PATH" in
 esac
 
 # Port Webhook Lokal
-read -rp "$(echo -e "${BOLD}9. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
+read -rp "$(echo -e "${BOLD}8. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
 INP_WEBHOOK_PORT=${INP_WEBHOOK_PORT:-8085}
 
 # Webhook Secret Token
 RANDOM_SECRET=$(openssl rand -hex 12)
-read -rp "$(echo -e "${BOLD}10. Secret Token Webhook (Default: $RANDOM_SECRET): ${NC}")" INP_WEBHOOK_SECRET
+read -rp "$(echo -e "${BOLD}9. Secret Token Webhook (Default: $RANDOM_SECRET): ${NC}")" INP_WEBHOOK_SECRET
 INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$RANDOM_SECRET}
 
 # Pilihan Tunnel
-echo -e "\n${BOLD}11. Pilih Metode Akses Publik / Online Webhook:${NC}"
+echo -e "\n${BOLD}10. Pilih Metode Akses Publik / Online Webhook:${NC}"
 echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Gratis, Otomatis, Tanpa Domain]"
 echo "  2) Cloudflare Named Tunnel dengan Domain Sendiri (dash.cloudflare.com)"
 read -rp "Pilihan Anda (1/2, default: 1): " INP_TUNNEL_CHOICE
@@ -385,6 +380,7 @@ else
     echo -e "• Web Admin Panel   : ${CYAN}${INP_ADMIN_PATH}${NC}"
     echo -e "• Webhook QRIS Path : ${CYAN}${INP_WEBHOOK_PATH}${NC}"
 fi
+echo -e "• Merchant QRIS     : ${CYAN}${INP_MERCHANT_NAME}${NC} (Otomatis dari Tag 59)"
 echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 

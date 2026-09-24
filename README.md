@@ -38,12 +38,11 @@ Pada wizard instalasi, Anda akan diminta mengisi:
 1. `TELEGRAM_BOT_TOKEN` (dari @BotFather)
 2. `ADMIN_USER_ID` (ID Telegram admin dari @userinfobot)
 3. `Nama Toko` (nama toko yang tampil di bot dan chat pelanggan)
-4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan QRIS merchant Anda, atau upload gambar QRIS Anda ke https://qris-dana-converter.vercel.app/ untuk mengekstrak string payload-nya)
-5. `Nama Merchant` (sesuai nama toko pada QRIS)
-6. `Password Web Admin` (untuk login ke dashboard admin)
-7. `Path Web Admin Panel` (default: `/admin`, dapat diganti misalnya `/kelola` atau `/panel`)
-8. `Path Webhook QRIS` (default: `/webhook/qris`)
-9. Metode Akses: Cloudflare Quick Tunnel (gratis, tanpa domain) atau Cloudflare Named Tunnel dengan Domain Sendiri
+4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan QRIS merchant Anda, atau upload gambar QRIS Anda ke https://qris-dana-converter.vercel.app/ untuk mengekstrak string payload-nya; nama merchant QRIS otomatis diekstrak langsung dari Tag 59 payload dan tidak diisi manual agar QRIS selalu valid)
+5. `Password Web Admin` (untuk login ke dashboard admin)
+6. `Path Web Admin Panel` (default: `/admin`, dapat diganti misalnya `/kelola` atau `/panel`)
+7. `Path Webhook QRIS` (default: `/webhook/qris`)
+8. Metode Akses: Cloudflare Quick Tunnel (gratis, tanpa domain) atau Cloudflare Named Tunnel dengan Domain Sendiri
 
 Setelah instalasi selesai, layanan bot dan tunnel akan berjalan otomatis di background sebagai service systemd.
 

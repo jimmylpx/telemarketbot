@@ -74,13 +74,15 @@ def _extract_qris_merchant(payload: str) -> str:
     return ""
 
 
+# Nama merchant QRIS otomatis diekstrak langsung dari Tag 59 QRIS_BASE_PAYLOAD.
+# Tidak dapat diatur manual di .env karena jika berbeda dengan payload, QRIS tidak valid dan pembayaran tidak berfungsi.
 _detected_merchant: str = _extract_qris_merchant(QRIS_BASE_PAYLOAD)
-MERCHANT_NAME: str = _get_env("MERCHANT_NAME", _detected_merchant or "IDLisensi")
+MERCHANT_NAME: str = _detected_merchant or "IDLisensi"
 
 # Fallback info pembayaran manual jika diperlukan
 PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS (Semua E-Wallet & Bank)")
 PAYMENT_NUMBER: str = _get_env("PAYMENT_NUMBER", "QRIS Dinamis")
-PAYMENT_NAME: str = _get_env("PAYMENT_NAME", MERCHANT_NAME)
+PAYMENT_NAME: str = MERCHANT_NAME
 
 # Webhook & Tunnel
 WEBHOOK_HOST: str = _get_env("WEBHOOK_HOST", "0.0.0.0")
