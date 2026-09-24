@@ -108,6 +108,15 @@ def main():
         )
         logger.info("Job auto-cancel order kadaluarsa aktif (interval 60 detik)")
 
+        # 2) Watcher stok file .txt tiap produk (interval 60 detik)
+        app.job_queue.run_repeating(
+            poller.watch_stock_changes,
+            interval=60,
+            first=10,
+            name="watch_stock_changes",
+        )
+        logger.info("Job stock watcher aktif (interval 60 detik)")
+
 
 
     logger.info("Bot Telegram mulai polling...")

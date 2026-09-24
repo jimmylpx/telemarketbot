@@ -927,6 +927,11 @@ async def handle_save_product_stock(request: web.Request) -> web.Response:
             import asyncio
             from payments.delivery import notify_stock_subscribers
             asyncio.create_task(notify_stock_subscribers(bot, pid, total_now - prev_stock, total_now))
+        try:
+            from jobs.poller import update_cached_stock
+            update_cached_stock(pid, total_now)
+        except Exception:
+            pass
     logger.info("Admin mengedit langsung file stok #%d '%s': total %d unit disimpan", pid, product['name'], len(lines))
 
     raise web.HTTPFound(f"{admin_path}?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
@@ -1009,6 +1014,11 @@ async def handle_product_restock(request: web.Request) -> web.Response:
         import asyncio
         from payments.delivery import notify_stock_subscribers
         asyncio.create_task(notify_stock_subscribers(bot, pid, len(lines), total_now))
+        try:
+            from jobs.poller import update_cached_stock
+            update_cached_stock(pid, total_now)
+        except Exception:
+            pass
     logger.info("Admin restock produk #%d '%s': +%d unit (total sekarang: %d)", pid, product['name'], len(lines), total_now)
 
     raise web.HTTPFound(f"{admin_path}?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")
