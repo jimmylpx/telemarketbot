@@ -352,16 +352,25 @@ echo -e "${GREEN}[+] Perintah CLI 'telemarketbot' berhasil dipasang di /usr/loca
 
 LIVE_TUNNEL_URL=""
 if [ "$USE_CF" = "true" ]; then
-    echo -e "\n${BLUE}[*] Menghubungkan ke Cloudflare Quick Tunnel (menunggu link publik)...${NC}"
-    for i in {1..15}; do
+    if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
         if [ -f "$PROJECT_DIR/.current_tunnel_url" ]; then
             LIVE_TUNNEL_URL=$(cat "$PROJECT_DIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
-            if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
-                break
-            fi
         fi
-        sleep 1
-    done
+        if [ -z "$LIVE_TUNNEL_URL" ]; then
+            LIVE_TUNNEL_URL=$(grep "^CUSTOM_DOMAIN_URL=" "$PROJECT_DIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        fi
+    else
+        echo -e "\n${BLUE}[*] Menghubungkan ke Cloudflare Quick Tunnel (menunggu link publik)...${NC}"
+        for i in {1..15}; do
+            if [ -f "$PROJECT_DIR/.current_tunnel_url" ]; then
+                LIVE_TUNNEL_URL=$(cat "$PROJECT_DIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+                if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
+                    break
+                fi
+            fi
+            sleep 1
+        done
+    fi
 fi
 
 echo -e "\n${GREEN}${BOLD}=================================================================="

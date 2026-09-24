@@ -160,19 +160,32 @@ cmd_restart() {
     echo -e "${BLUE}[*] Merestart layanan TeleMarketBot...${NC}"
     $SUDO systemctl restart telemarketbot
     if systemctl list-unit-files telemarketbot-tunnel.service 2>/dev/null | grep -q "telemarketbot-tunnel"; then
-        echo -e "${BLUE}[*] Merestart Cloudflare Quick Tunnel...${NC}"
-        $SUDO rm -f "$WORKDIR/.current_tunnel_url"
-        $SUDO systemctl restart telemarketbot-tunnel
-        echo -e "${BLUE}[*] Menunggu pembuatan URL live baru dari Cloudflare...${NC}"
-        for i in {1..15}; do
-            if [ -f "$WORKDIR/.current_tunnel_url" ]; then
-                NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
-                if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
-                    break
-                fi
+        MODE="trycloudflare"
+        if [ -f "$WORKDIR/.env" ]; then
+            ENV_MODE=$(grep "^TUNNEL_MODE=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+            if [ -n "$ENV_MODE" ]; then
+                MODE="$ENV_MODE"
             fi
-            sleep 1
-        done
+        fi
+        if [ "$MODE" = "custom_domain" ]; then
+            echo -e "${BLUE}[*] Merestart Cloudflare Tunnel (Domain Sendiri)...${NC}"
+            $SUDO systemctl restart telemarketbot-tunnel
+            sleep 2
+        else
+            echo -e "${BLUE}[*] Merestart Cloudflare Quick Tunnel...${NC}"
+            $SUDO rm -f "$WORKDIR/.current_tunnel_url"
+            $SUDO systemctl restart telemarketbot-tunnel
+            echo -e "${BLUE}[*] Menunggu pembuatan URL live baru dari Cloudflare...${NC}"
+            for i in {1..15}; do
+                if [ -f "$WORKDIR/.current_tunnel_url" ]; then
+                    NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+                    if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
+                        break
+                    fi
+                fi
+                sleep 1
+            done
+        fi
     else
         sleep 2
     fi
@@ -185,20 +198,34 @@ cmd_start() {
     $SUDO systemctl start telemarketbot
     $SUDO systemctl enable telemarketbot >/dev/null 2>&1 || true
     if systemctl list-unit-files telemarketbot-tunnel.service 2>/dev/null | grep -q "telemarketbot-tunnel"; then
-        echo -e "${BLUE}[*] Menjalankan Cloudflare Quick Tunnel...${NC}"
-        $SUDO rm -f "$WORKDIR/.current_tunnel_url"
-        $SUDO systemctl start telemarketbot-tunnel
-        $SUDO systemctl enable telemarketbot-tunnel >/dev/null 2>&1 || true
-        echo -e "${BLUE}[*] Menunggu pembuatan URL live dari Cloudflare...${NC}"
-        for i in {1..15}; do
-            if [ -f "$WORKDIR/.current_tunnel_url" ]; then
-                NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
-                if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
-                    break
-                fi
+        MODE="trycloudflare"
+        if [ -f "$WORKDIR/.env" ]; then
+            ENV_MODE=$(grep "^TUNNEL_MODE=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+            if [ -n "$ENV_MODE" ]; then
+                MODE="$ENV_MODE"
             fi
-            sleep 1
-        done
+        fi
+        if [ "$MODE" = "custom_domain" ]; then
+            echo -e "${BLUE}[*] Menjalankan Cloudflare Tunnel (Domain Sendiri)...${NC}"
+            $SUDO systemctl start telemarketbot-tunnel
+            $SUDO systemctl enable telemarketbot-tunnel >/dev/null 2>&1 || true
+            sleep 2
+        else
+            echo -e "${BLUE}[*] Menjalankan Cloudflare Quick Tunnel...${NC}"
+            $SUDO rm -f "$WORKDIR/.current_tunnel_url"
+            $SUDO systemctl start telemarketbot-tunnel
+            $SUDO systemctl enable telemarketbot-tunnel >/dev/null 2>&1 || true
+            echo -e "${BLUE}[*] Menunggu pembuatan URL live dari Cloudflare...${NC}"
+            for i in {1..15}; do
+                if [ -f "$WORKDIR/.current_tunnel_url" ]; then
+                    NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+                    if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
+                        break
+                    fi
+                fi
+                sleep 1
+            done
+        fi
     else
         sleep 2
     fi
