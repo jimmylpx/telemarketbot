@@ -158,6 +158,10 @@ LOGIN_HTML = """<!DOCTYPE html>
 
 def render_dashboard(products: list[dict], stats: dict, orders: list[dict], alert_msg: str = "", alert_err: str = "") -> str:
     admin_path = get_admin_path()
+    webhook_path = getattr(config, "DANA_WEBHOOK_PATH", "/webhook/dana")
+    if not webhook_path.startswith("/"):
+        webhook_path = "/" + webhook_path
+    webhook_url = f"{config.PUBLIC_URL}{webhook_path}" if config.PUBLIC_URL else webhook_path
     total_stock_count = 0
     prod_rows = []
     prod_options = []
@@ -476,6 +480,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             <button class="tab-btn" onclick="switchTab('add-product')">➕ Tambah Produk Baru</button>
             <button class="tab-btn" onclick="switchTab('restock')">⚡ Tambah Stok (Restock)</button>
             <button class="tab-btn" onclick="switchTab('orders')">📋 Riwayat Pesanan</button>
+            <button class="tab-btn" onclick="switchTab('simulation')">🧪 Simulasi & Webhook DANA</button>
         </div>
 
         <!-- Tab 1: Daftar Produk -->
@@ -590,6 +595,60 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                         {order_rows_html}
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Tab 5: Simulasi & Webhook DANA -->
+        <div id="tab-simulation" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🤖 Status Gateway & Endpoint Webhook DANA</div>
+                    <span class="badge badge-stock-ok">ONLINE</span>
+                </div>
+                <p style="margin-bottom: 12px; color: #cbd5e1;">Status Webhook: <span class="badge badge-stock-ok">ONLINE</span> (Port {config.WEBHOOK_PORT})</p>
+                <p style="margin-bottom: 16px; color: #cbd5e1;">Public Webhook Endpoint: <code class="file-path" style="font-size: 13px;">{webhook_url}</code></p>
+                <p style="color: #94a3b8; font-size: 13px;">Endpoint webhook publik aman dan terlindungi. Anda dapat menguji integrasi notifikasi secara langsung melalui formulir simulasi di bawah ini.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📱 Panduan Body JSON MacroDroid / Forwarder HP</div>
+                </div>
+                <p style="margin-bottom: 12px; color: #cbd5e1;">Di aplikasi MacroDroid pada aksi <b>HTTP Request</b>:</p>
+                <ul style="margin-left: 20px; line-height: 1.8; color: #cbd5e1; font-size: 14px;">
+                    <li><b>Request Method:</b> <code>POST</code></li>
+                    <li><b>URL:</b> <code>{webhook_url}</code></li>
+                    <li><b>Content Type:</b> <code>application/json</code></li>
+                    <li><b>Request Body:</b>
+<pre style="background: #0b0f19; padding: 12px; border-radius: 8px; margin-top: 8px; margin-bottom: 8px; color: #38bdf8; font-family: monospace;">{{{{
+  "title": "{{{{{{{{not_title}}}}}}}}",
+  "text": "{{{{{{{{notification}}}}}}}}",
+  "secret": "{config.WEBHOOK_SECRET}"
+}}}}</pre>
+                    <small style="color: #94a3b8;">⚠️ <i>Catatan: Di MacroDroid, variabel teks isi notifikasi adalah <b>{{{{notification}}}}</b> (atau pilih dari tombol tiga titik [...] &rarr; Notification Text).</i></small>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🧪 Simulasi / Test Webhook Notifikasi</div>
+                </div>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 16px;">
+                    Kirim simulasi notifikasi transfer/QRIS DANA masuk langsung ke endpoint <code>{webhook_path}</code> untuk menguji auto-verifikasi dan pengiriman otomatis bot.
+                </p>
+                <form id="simForm" onsubmit="sendSimulation(event)">
+                    <div class="form-group">
+                        <label>Teks Notifikasi DANA:</label>
+                        <input type="text" id="simNotifText" value="Kamu telah menerima pembayaran QRIS sebesar Rp 9.138" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Secret Token Webhook:</label>
+                        <input type="text" id="simSecretToken" value="{config.WEBHOOK_SECRET}" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">🚀 Kirim Simulasi Webhook</button>
+                </form>
+                <div id="simResult" style="margin-top: 16px;"></div>
             </div>
         </div>
     </div>
@@ -742,6 +801,27 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 
         function closeModal(id) {{
             document.getElementById(id).classList.remove('active');
+        }}
+
+        async function sendSimulation(e) {{
+            e.preventDefault();
+            const resultDiv = document.getElementById("simResult");
+            resultDiv.innerHTML = '<span style="color: #38bdf8;">⏳ Mengirim permintaan webhook ke {webhook_path}...</span>';
+            try {{
+                const res = await fetch("{webhook_path}", {{
+                    method: "POST",
+                    headers: {{ "Content-Type": "application/json" }},
+                    body: JSON.stringify({{
+                        title: "Pembayaran Masuk",
+                        text: document.getElementById("simNotifText").value,
+                        secret: document.getElementById("simSecretToken").value
+                    }})
+                }});
+                const data = await res.json();
+                resultDiv.innerHTML = '<pre style="background: #0b0f19; padding: 14px; border-radius: 8px; color: #a5f3fc; border: 1px solid #334155; overflow-x: auto;">' + JSON.stringify(data, null, 2) + '</pre>';
+            }} catch (err) {{
+                resultDiv.innerHTML = '<p style="color: #ef4444;">Error: ' + err + '</p>';
+            }}
         }}
     </script>
 </body>
