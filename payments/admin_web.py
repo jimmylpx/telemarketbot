@@ -27,15 +27,6 @@ logger = logging.getLogger(__name__)
 
 COOKIE_NAME = "idlisensi_admin_session"
 
-def get_admin_path() -> str:
-    path = getattr(config, "ADMIN_WEB_PATH", "/admin").strip()
-    if not path.startswith("/"):
-        path = "/" + path
-    path = path.rstrip("/")
-    return path if path else "/admin"
-
-
-
 
 def _sign_token(value: str) -> str:
     sig = hmac.new(
@@ -72,7 +63,7 @@ LOGIN_HTML = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin</title>
+    <title>Login Admin - IDLisensi Bot</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -140,7 +131,7 @@ LOGIN_HTML = """<!DOCTYPE html>
 <body>
     <div class="login-card">
         <div class="logo">🔐</div>
-        <h1>Panel Admin</h1>
+        <h1>Panel Admin IDLisensi</h1>
         <p>Silakan masukkan password admin untuk mengakses pengelolaan bot.</p>
         __ALERT__
         <form method="POST" action="/admin/login">
@@ -157,11 +148,6 @@ LOGIN_HTML = """<!DOCTYPE html>
 
 
 def render_dashboard(products: list[dict], stats: dict, orders: list[dict], alert_msg: str = "", alert_err: str = "") -> str:
-    admin_path = get_admin_path()
-    webhook_path = getattr(config, "DANA_WEBHOOK_PATH", "/webhook/dana")
-    if not webhook_path.startswith("/"):
-        webhook_path = "/" + webhook_path
-    webhook_url = f"{config.PUBLIC_URL}{webhook_path}" if config.PUBLIC_URL else webhook_path
     total_stock_count = 0
     prod_rows = []
     prod_options = []
@@ -170,7 +156,12 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
         s_path = get_product_stock_path(p)
         stk = get_stock_count(s_path)
         total_stock_count += stk
-        type_badge = '<span class="badge badge-reg">Per Baris (Instant)</span>'
+        p_type = p.get("product_type") or ("office_cid" if "office" in p["name"].lower() else "regular")
+        type_badge = (
+            '<span class="badge badge-office">Office (Auto CID)</span>'
+            if p_type == "office_cid"
+            else '<span class="badge badge-reg">Regular Link/Key</span>'
+        )
         sub_cnt = db.count_subscribers_for_product(p['id'])
         sub_badge = f'<br/><small style="color:#38bdf8;">🔔 {sub_cnt} peminat</small>' if sub_cnt > 0 else ''
         stk_badge = (
@@ -193,7 +184,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             <td class="action-btns">
                 <button class="btn btn-sm btn-info" onclick="openEditStock({p['id']}, '{html.escape(p['name'])}')">📝 Edit Stok TXT</button>
                 <button class="btn btn-sm btn-success" onclick="openRestock({p['id']}, '{html.escape(p['name'])}', {stk})">➕ Tambah</button>
-                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}')">✏️ Edit</button>
+                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}', '{p_type}')">✏️ Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="confirmDelete({p['id']}, '{html.escape(p['name'])}')">🗑️</button>
             </td>
         </tr>
@@ -240,7 +231,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin {config.SHOP_NAME}</title>
+    <title>Panel Admin IDLisensi Bot</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
@@ -283,7 +274,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 
         .stats-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
             gap: 16px;
             margin-bottom: 28px;
         }}
@@ -451,7 +442,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <h1>🤖 {config.SHOP_NAME}</h1>
                 <span>ADMIN PANEL</span>
             </div>
-            <a href="{admin_path}/logout" class="logout-btn">Keluar (Logout)</a>
+            <a href="/admin/logout" class="logout-btn">Keluar (Logout)</a>
         </header>
 
         {alert_banner}
@@ -469,6 +460,10 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             <div class="stat-card">
                 <div class="stat-title">Pesanan Lunas (Paid)</div>
                 <div class="stat-val green">{stats.get('paid', 0)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Penghasilan (Lunas)</div>
+                <div class="stat-val green">Rp {int(stats.get('revenue') or 0):,}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-title">Pesanan Menunggu (Pending)</div>
@@ -517,11 +512,11 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="card-header">
                     <div class="card-title">➕ Tambah Produk Baru ke Bot Telegram</div>
                 </div>
-                <form method="POST" action="{admin_path}/products/add">
+                <form method="POST" action="/admin/products/add">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nama Produk</label>
-                            <input type="text" name="name" placeholder="Contoh: Canva Premium 1 Bulan" required />
+                            <input type="text" name="name" placeholder="Contoh: Lisensi Windows 11 Pro Retail" required />
                         </div>
                         <div class="form-group">
                             <label>Harga (Rupiah)</label>
@@ -531,8 +526,11 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tipe Pengiriman</label>
-                            <input type="text" name="product_type" value="Digital (1 Baris / Unit)" readonly style="opacity:0.8; cursor:not-allowed;" />
+                            <label>Tipe Produk</label>
+                            <select name="product_type">
+                                <option value="regular">Biasa / Regular (Link Jio, Akun, Lisensi standar)</option>
+                                <option value="office_cid">Office (Phone Key + Auto Token CID & Panduan Aktivasi)</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Deskripsi Singkat (Opsional)</label>
@@ -557,7 +555,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="card-header">
                     <div class="card-title">⚡ Tambah Stok (Restock) Produk</div>
                 </div>
-                <form method="POST" action="{admin_path}/products/restock">
+                <form method="POST" action="/admin/products/restock">
                     <div class="form-group">
                         <label>Pilih Produk yang Ingin Ditambah Stok:</label>
                         <select name="product_id" id="restockSelect" required>
@@ -608,8 +606,8 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                     <span class="badge badge-stock-ok">ONLINE</span>
                 </div>
                 <p style="margin-bottom: 12px; color: #cbd5e1;">Status Webhook: <span class="badge badge-stock-ok">ONLINE</span> (Port {config.WEBHOOK_PORT})</p>
-                <p style="margin-bottom: 16px; color: #cbd5e1;">Public Webhook Endpoint: <code class="file-path" style="font-size: 13px;">{webhook_url}</code></p>
-                <p style="color: #94a3b8; font-size: 13px;">Endpoint webhook publik aman dan terlindungi. Anda dapat menguji integrasi notifikasi secara langsung melalui formulir simulasi di bawah ini.</p>
+                <p style="margin-bottom: 16px; color: #cbd5e1;">Public Webhook Endpoint: <code class="file-path" style="font-size: 13px;">{config.PUBLIC_URL}/webhook/dana</code></p>
+                <p style="color: #94a3b8; font-size: 13px;">Halaman publik webhook sengaja disetel kosong/blank demi keamanan. Anda dapat melakukan simulasi notifikasi DANA langsung dari panel ini.</p>
             </div>
 
 <div class="card">
@@ -617,7 +615,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                     <div class="card-title">🧪 Simulasi / Test Webhook Notifikasi</div>
                 </div>
                 <p style="color: #94a3b8; font-size: 14px; margin-bottom: 16px;">
-                    Kirim simulasi notifikasi transfer/QRIS DANA masuk langsung ke endpoint <code>{webhook_path}</code> untuk menguji auto-verifikasi dan pengiriman otomatis bot.
+                    Kirim simulasi notifikasi transfer/QRIS DANA masuk langsung ke endpoint <code>/webhook/dana</code> untuk menguji auto-verifikasi dan pengiriman pesanan otomatis.
                 </p>
                 <form id="simForm" onsubmit="sendSimulation(event)">
                     <div class="form-group">
@@ -646,7 +644,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 Produk: <strong id="stockProdTitle" style="color:#38bdf8;"></strong><br/>
                 File path: <code id="stockFilePath" class="file-path"></code>
             </p>
-            <form method="POST" action="{admin_path}/products/stock/save">
+            <form method="POST" action="/admin/products/stock/save">
                 <input type="hidden" name="product_id" id="stockPid" />
                 <div class="form-group">
                     <label>Isi File Stok (1 baris per unit, dipisahkan Enter / \\n):</label>
@@ -668,7 +666,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="modal-title">✏️ Edit Informasi Produk</div>
                 <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
             </div>
-            <form method="POST" action="{admin_path}/products/edit">
+            <form method="POST" action="/admin/products/edit">
                 <input type="hidden" name="product_id" id="editPid" />
                 <div class="form-group">
                     <label>Nama Produk</label>
@@ -680,8 +678,11 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                         <input type="number" name="price" id="editPrice" min="1000" required />
                     </div>
                     <div class="form-group">
-                        <label>Tipe Pengiriman</label>
-                        <input type="text" name="product_type" id="editType" value="Digital (1 Baris / Unit)" readonly style="opacity:0.8; cursor:not-allowed;" />
+                        <label>Tipe Produk</label>
+                        <select name="product_type" id="editType">
+                            <option value="regular">Biasa / Regular</option>
+                            <option value="office_cid">Office (Auto CID)</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-group">
@@ -704,7 +705,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <button class="close-btn" onclick="closeModal('deleteModal')">&times;</button>
             </div>
             <p style="margin-bottom: 20px; color:#cbd5e1;">Apakah Anda yakin ingin menghapus produk <strong id="deleteProdName" style="color:#ef4444;"></strong> dari bot Telegram?</p>
-            <form method="POST" action="{admin_path}/products/delete">
+            <form method="POST" action="/admin/products/delete">
                 <input type="hidden" name="product_id" id="deletePid" />
                 <div style="display:flex; justify-content: flex-end; gap:10px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal')">Batal</button>
@@ -740,7 +741,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             document.getElementById('stockModal').classList.add('active');
 
             try {{
-                const res = await fetch('{admin_path}/products/stock?id=' + pid);
+                const res = await fetch('/admin/products/stock?id=' + pid);
                 const data = await res.json();
                 if (data.success) {{
                     document.getElementById('stockFilePath').textContent = data.stock_path;
@@ -767,11 +768,12 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             updateCounter('restockText', 'restockCounter');
         }}
 
-        function openEdit(pid, name, price, desc) {{
+        function openEdit(pid, name, price, desc, ptype) {{
             document.getElementById('editPid').value = pid;
             document.getElementById('editName').value = name;
             document.getElementById('editPrice').value = price;
             document.getElementById('editDesc').value = desc;
+            document.getElementById('editType').value = ptype;
             document.getElementById('editModal').classList.add('active');
         }}
 
@@ -788,9 +790,9 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
         async function sendSimulation(e) {{
             e.preventDefault();
             const resultDiv = document.getElementById("simResult");
-            resultDiv.innerHTML = '<span style="color: #38bdf8;">⏳ Mengirim permintaan webhook ke {webhook_path}...</span>';
+            resultDiv.innerHTML = '<span style="color: #38bdf8;">⏳ Mengirim permintaan webhook ke /webhook/dana...</span>';
             try {{
-                const res = await fetch("{webhook_path}", {{
+                const res = await fetch("/webhook/dana", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
                     body: JSON.stringify({{
@@ -816,45 +818,40 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 # ---------------------------------------------------------------------------
 
 async def handle_not_found(request: web.Request) -> web.Response:
-    """Tolak akses root / publik dengan status 404 Not Found (tidak diarahkan ke login)."""
-    return web.Response(text="404 Not Found", status=404)
+    """Tampilkan halaman kosong putih (blank page) demi privasi agar endpoint tidak terlihat."""
+    return web.Response(text="", content_type="text/html", status=200)
 
 
 async def handle_login_page(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if is_authenticated(request):
-        raise web.HTTPFound(admin_path)
+        raise web.HTTPFound("/admin")
     err = request.query.get("err", "")
     alert = f'<div class="alert">{html.escape(err)}</div>' if err else ""
-    page = LOGIN_HTML.replace("__ALERT__", alert).replace('action="/admin/login"', f'action="{admin_path}/login"')
-    return web.Response(text=page, content_type="text/html")
+    return web.Response(text=LOGIN_HTML.replace("__ALERT__", alert), content_type="text/html")
 
 
 async def handle_login_submit(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     data = await request.post()
     pw = str(data.get("password", "")).strip()
 
     if pw == config.ADMIN_WEB_PASSWORD:
-        resp = web.HTTPFound(admin_path)
+        resp = web.HTTPFound("/admin")
         token = _sign_token("admin_authenticated")
         resp.set_cookie(COOKIE_NAME, token, httponly=True, max_age=86400 * 30, path="/")
         return resp
 
-    raise web.HTTPFound(f"{admin_path}/login?err=Password+salah!+Periksa+kembali+password+admin+Anda.")
+    raise web.HTTPFound("/admin/login?err=Password+salah!+Periksa+kembali+password+admin+Anda.")
 
 
 async def handle_logout(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
-    resp = web.HTTPFound(f"{admin_path}/login")
+    resp = web.HTTPFound("/admin/login")
     resp.del_cookie(COOKIE_NAME, path="/")
     return resp
 
 
 async def handle_admin_dashboard(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     products = db.list_products()
     stats = db.get_orders_stats()
@@ -900,20 +897,19 @@ async def handle_get_product_stock(request: web.Request) -> web.Response:
 
 
 async def handle_save_product_stock(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     """Menyimpan seluruh isi file stok (.txt) hasil edit langsung."""
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if not product:
-        raise web.HTTPFound(f"{admin_path}?err=Produk+tidak+ditemukan!")
+        raise web.HTTPFound("/admin?err=Produk+tidak+ditemukan!")
 
     raw_content = str(data.get("stock_content", ""))
     lines = [l.strip() for l in raw_content.splitlines() if l.strip()]
@@ -934,13 +930,12 @@ async def handle_save_product_stock(request: web.Request) -> web.Response:
             pass
     logger.info("Admin mengedit langsung file stok #%d '%s': total %d unit disimpan", pid, product['name'], len(lines))
 
-    raise web.HTTPFound(f"{admin_path}?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
+    raise web.HTTPFound(f"/admin?msg=File+stok+untuk+{product['name']}+berhasil+disimpan!+(Total+stok:+{len(lines)}+unit)")
 
 
 async def handle_product_add(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     data = await request.post()
     name = str(data.get("name", "")).strip()
@@ -950,14 +945,14 @@ async def handle_product_add(request: web.Request) -> web.Response:
     stock_raw = str(data.get("stock_lines", "")).strip()
 
     if not name:
-        raise web.HTTPFound(f"{admin_path}?err=Nama+produk+tidak+boleh+kosong!")
+        raise web.HTTPFound("/admin?err=Nama+produk+tidak+boleh+kosong!")
 
     try:
         price = int(price_raw)
         if price <= 0:
             raise ValueError()
     except ValueError:
-        raise web.HTTPFound(f"{admin_path}?err=Harga+produk+harus+berupa+angka+valid!")
+        raise web.HTTPFound("/admin?err=Harga+produk+harus+berupa+angka+valid!")
 
     # 1. Tambah record ke DB
     new_pid = db.add_product(name=name, price=price, description=desc, product_type=p_type)
@@ -984,28 +979,27 @@ async def handle_product_add(request: web.Request) -> web.Response:
             asyncio.create_task(notify_stock_subscribers(bot, new_pid, len(lines), len(lines)))
     logger.info("Admin menambahkan produk baru: #%d '%s' (Rp %d, %d unit stok)", new_pid, name, price, len(lines))
 
-    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{new_pid}+'{name}'+berhasil+dibuat+dengan+{len(lines)}+unit+stok!")
+    raise web.HTTPFound(f"/admin?msg=Produk+%23{new_pid}+'{name}'+berhasil+dibuat+dengan+{len(lines)}+unit+stok!")
 
 
 async def handle_product_restock(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if not product:
-        raise web.HTTPFound(f"{admin_path}?err=Produk+tidak+ditemukan!")
+        raise web.HTTPFound("/admin?err=Produk+tidak+ditemukan!")
 
     stock_raw = str(data.get("stock_lines", "")).strip()
     lines = [l.strip() for l in stock_raw.splitlines() if l.strip()]
     if not lines:
-        raise web.HTTPFound(f"{admin_path}?err=Tidak+ada+baris+stok+yang+dimasukkan!")
+        raise web.HTTPFound("/admin?err=Tidak+ada+baris+stok+yang+dimasukkan!")
 
     stock_path = get_product_stock_path(product)
     total_now = append_stock_lines(stock_path, lines)
@@ -1021,48 +1015,46 @@ async def handle_product_restock(request: web.Request) -> web.Response:
             pass
     logger.info("Admin restock produk #%d '%s': +%d unit (total sekarang: %d)", pid, product['name'], len(lines), total_now)
 
-    raise web.HTTPFound(f"{admin_path}?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")
+    raise web.HTTPFound(f"/admin?msg=Berhasil+menambahkan+{len(lines)}+unit+stok+untuk+{product['name']}!+(Total+stok:+{total_now}+unit)")
 
 
 async def handle_product_edit(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
         price = int(data.get("price", "0"))
     except ValueError:
-        raise web.HTTPFound(f"{admin_path}?err=Input+angka+tidak+valid!")
+        raise web.HTTPFound("/admin?err=Input+angka+tidak+valid!")
 
     name = str(data.get("name", "")).strip()
     desc = str(data.get("description", "")).strip()
     p_type = str(data.get("product_type", "regular")).strip()
 
     if not name:
-        raise web.HTTPFound(f"{admin_path}?err=Nama+produk+tidak+boleh+kosong!")
+        raise web.HTTPFound("/admin?err=Nama+produk+tidak+boleh+kosong!")
 
     db.update_product(pid, name=name, price=price, description=desc, product_type=p_type)
     logger.info("Admin mengedit produk #%d: '%s' (Rp %d)", pid, name, price)
 
-    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{pid}+berhasil+diperbarui!")
+    raise web.HTTPFound(f"/admin?msg=Produk+%23{pid}+berhasil+diperbarui!")
 
 
 async def handle_product_delete(request: web.Request) -> web.Response:
-    admin_path = get_admin_path()
     if not is_authenticated(request):
-        raise web.HTTPFound(f"{admin_path}/login")
+        raise web.HTTPFound("/admin/login")
 
     data = await request.post()
     try:
         pid = int(data.get("product_id", "0"))
     except ValueError:
-        raise web.HTTPFound(f"{admin_path}?err=ID+produk+tidak+valid!")
+        raise web.HTTPFound("/admin?err=ID+produk+tidak+valid!")
 
     product = db.get_product(pid)
     if product:
         db.delete_product(pid)
         logger.info("Admin menghapus produk #%d: '%s'", pid, product['name'])
 
-    raise web.HTTPFound(f"{admin_path}?msg=Produk+%23{pid}+berhasil+dihapus+dari+bot!")
+    raise web.HTTPFound(f"/admin?msg=Produk+%23{pid}+berhasil+dihapus+dari+bot!")
