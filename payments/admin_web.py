@@ -610,27 +610,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <p style="color: #94a3b8; font-size: 13px;">Endpoint webhook publik aman dan terlindungi. Anda dapat menguji integrasi notifikasi secara langsung melalui formulir simulasi di bawah ini.</p>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">📱 Panduan Body JSON MacroDroid / Forwarder HP</div>
-                </div>
-                <p style="margin-bottom: 12px; color: #cbd5e1;">Di aplikasi MacroDroid pada aksi <b>HTTP Request</b>:</p>
-                <ul style="margin-left: 20px; line-height: 1.8; color: #cbd5e1; font-size: 14px;">
-                    <li><b>Request Method:</b> <code>POST</code></li>
-                    <li><b>URL:</b> <code>{webhook_url}</code></li>
-                    <li><b>Content Type:</b> <code>application/json</code></li>
-                    <li><b>Request Body:</b>
-<pre style="background: #0b0f19; padding: 12px; border-radius: 8px; margin-top: 8px; margin-bottom: 8px; color: #38bdf8; font-family: monospace;">{{{{
-  "title": "{{{{{{{{not_title}}}}}}}}",
-  "text": "{{{{{{{{notification}}}}}}}}",
-  "secret": "{config.WEBHOOK_SECRET}"
-}}}}</pre>
-                    <small style="color: #94a3b8;">⚠️ <i>Catatan: Di MacroDroid, variabel teks isi notifikasi adalah <b>{{{{notification}}}}</b> (atau pilih dari tombol tiga titik [...] &rarr; Notification Text).</i></small>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card">
+<div class="card">
                 <div class="card-header">
                     <div class="card-title">🧪 Simulasi / Test Webhook Notifikasi</div>
                 </div>
