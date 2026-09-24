@@ -38,25 +38,26 @@ Pada wizard instalasi, Anda akan diminta mengisi:
 1. `TELEGRAM_BOT_TOKEN` (dari @BotFather)
 2. `ADMIN_USER_ID` (ID Telegram admin dari @userinfobot)
 3. `Nama Toko` (nama toko yang tampil di bot dan chat pelanggan)
-4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan QRIS merchant Anda)
+4. `QRIS_BASE_PAYLOAD` (string EMVCo dari scan QRIS merchant Anda, atau upload gambar QRIS Anda ke https://qris-dana-converter.vercel.app/ untuk mengekstrak string payload-nya)
 5. `Nama Merchant` (sesuai nama toko pada QRIS)
 6. `Password Web Admin` (untuk login ke dashboard admin)
-7. `Path Webhook QRIS` (default: `/webhook/dana`)
-8. Metode Akses: Cloudflare Quick Tunnel (gratis, tanpa domain) atau Custom Domain sendiri
+7. `Path Web Admin Panel` (default: `/admin`, dapat diganti misalnya `/kelola` atau `/panel`)
+8. `Path Webhook QRIS` (default: `/webhook/dana`)
+9. Metode Akses: Cloudflare Quick Tunnel (gratis, tanpa domain) atau Cloudflare Named Tunnel dengan Domain Sendiri
 
 Setelah instalasi selesai, layanan bot dan tunnel akan berjalan otomatis di background sebagai service systemd.
 
 ---
 
-## Integrasi Notifikasi Mutasi (MacroDroid)
+## Integrasi Notifikasi (MacroDroid)
 
 Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer dana via QRIS:
 
-1. Pasang aplikasi **MacroDroid** pada smartphone Android yang menerima notifikasi pembayaran/mutasi.
+1. Pasang aplikasi **MacroDroid** pada smartphone Android yang menerima notifikasi pembayaran/mutasi (GoPay Merchant, DANA Bisnis, BCA Mobile, dsb).
 2. Buat makro baru:
    - **Trigger:**
      - Pilih `Device Events` -> `Notification` -> `Notification Received`
-     - Pilih Aplikasi: **Aplikasi E-Wallet / Bank Anda** (GoPay Merchant, DANA Bisnis, BCA Mobile, dsb)
+     - Pilih Aplikasi: **Aplikasi E-Wallet / Bank Anda**
    - **Action:**
      - Pilih `Web Interactions` -> `HTTP Request`
      - **Tab Settings:**
@@ -73,7 +74,7 @@ Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer
            "secret": "TOKEN_WEBHOOK_RAHASIA_ANDA"
          }
          ```
-       - *Catatan:* Ganti `TOKEN_WEBHOOK_RAHASIA_ANDA` dengan nilai `WEBHOOK_SECRET` Anda di file `.env`.
+       - *Catatan:* Ganti `TOKEN_WEBHOOK_RAHASIA_ANDA` dengan nilai `WEBHOOK_SECRET` Anda di file `.env` (default: `bottele_dana_secret_2026`).
 3. Simpan dan aktifkan makro.
 
 ---
@@ -81,7 +82,7 @@ Agar bot dapat memverifikasi pembayaran secara otomatis saat pembeli mentransfer
 ## Web Admin Panel
 
 Dashboard admin dapat diakses melalui browser:
-1. Buka URL: `https://[domain-anda]/admin`.
+1. Buka URL: `https://[domain-anda]/admin` (atau sesuai path admin yang Anda tentukan).
 2. Masukkan password admin yang Anda buat saat instalasi.
 3. Fitur panel:
    - Ringkasan statistik transaksi dan omzet.
@@ -103,6 +104,7 @@ Gunakan perintah `telemarketbot` di terminal untuk mengelola server:
 | `telemarketbot start` | Menjalankan bot dan tunnel |
 | `telemarketbot stop` | Menghentikan bot dan tunnel |
 | `telemarketbot url` | Menampilkan URL publik dan admin panel saat ini |
+| `telemarketbot domain` | Mengatur dan beralih mode tunnel (TryCloudflare <-> Domain Sendiri via dash.cloudflare.com) |
 
 Layanan telah dikonfigurasi dengan auto-start saat boot (`systemd enabled`).
 
@@ -128,11 +130,12 @@ Layanan telah dikonfigurasi dengan auto-start saat boot (`systemd enabled`).
 ├── payments/                  # Modul Pembayaran & Web
 │   ├── admin_web.py           # Web Admin Panel HTML & handler
 │   ├── webhook.py             # Receiver webhook notifikasi pembayaran & mutasi QRIS
-│   ├── dana_webhook.py        # Backward compatibility shim
+│   ├── dana_webhook.py        # Backward compatibility shim (/webhook/dana)
 │   ├── delivery.py            # Pengiriman stok otomatis ke pembeli
 │   └── qris_generator.py      # Generator QRIS Dinamis (CRC-16)
 │
 ├── scripts/                   # Utility Scripts
+│   ├── cloudflare_setup.py    # Setup Cloudflare Named Tunnel dengan Domain Sendiri
 │   └── tunnel_manager.py      # Supervisor Cloudflare Quick Tunnel
 │
 └── data/                      # Direktori data (ter-ignore dari Git)

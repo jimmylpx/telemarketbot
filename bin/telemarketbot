@@ -36,7 +36,7 @@ fi
 cmd_status() {
     echo -e "${CYAN}${BOLD}"
     echo "=================================================================="
-    echo "              🤖 TELEMARKETBOT STATUS & OVERVIEW"
+    echo "              TELEMARKETBOT STATUS & OVERVIEW"
     echo "=================================================================="
     echo -e "${NC}"
 
@@ -59,6 +59,18 @@ cmd_status() {
             echo -e "● Cloudflare Tunnel: ${GREEN}${BOLD}[ACTIVE / ONLINE]${NC} (PID: $TUNNEL_PID)"
         else
             echo -e "● Cloudflare Tunnel: ${RED}${BOLD}[INACTIVE / OFFLINE]${NC}"
+        fi
+        MODE="trycloudflare"
+        if [ -f "$WORKDIR/.env" ]; then
+            ENV_MODE=$(grep "^TUNNEL_MODE=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]')
+            if [ -n "$ENV_MODE" ]; then
+                MODE="$ENV_MODE"
+            fi
+        fi
+        if [ "$MODE" = "custom_domain" ]; then
+            echo -e "● Tunnel Mode      : ${GREEN}${BOLD}Named Tunnel (Domain Sendiri)${NC}"
+        else
+            echo -e "● Tunnel Mode      : ${BLUE}Quick Tunnel (try.cloudflare.com)${NC}"
         fi
     else
         echo -e "● Cloudflare Tunnel: ${YELLOW}[TIDAK DIAKTIFKAN / CUSTOM DOMAIN]${NC}"
@@ -90,16 +102,40 @@ cmd_status() {
         fi
     fi
 
-    echo -e "\n${BOLD}🌐 INFORMASI AKSES LIVE:${NC}"
+    ADMIN_PATH="/admin"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_ADMIN_PATH=$(grep "^ADMIN_WEB_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_ADMIN_PATH" ]; then
+            ADMIN_PATH="$ENV_ADMIN_PATH"
+        fi
+    fi
+    case "$ADMIN_PATH" in
+        /*) ;;
+        *) ADMIN_PATH="/$ADMIN_PATH" ;;
+    esac
+
+    WEBHOOK_PATH="/webhook/dana"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_WEBHOOK_PATH" ]; then
+            WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
+        fi
+    fi
+    case "$WEBHOOK_PATH" in
+        /*) ;;
+        *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
+    esac
+
+    echo -e "\n${BOLD}INFORMASI AKSES LIVE:${NC}"
     if [ -n "$LIVE_URL" ] && [ "$LIVE_URL" != "https://try.cloudflare.com" ]; then
         echo -e "• Public URL       : ${CYAN}${BOLD}${LIVE_URL}${NC}"
-        echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}/admin${NC}"
-        echo -e "• Webhook QRIS     : ${GREEN}${BOLD}${LIVE_URL}/webhook/dana${NC}"
+        echo -e "• Web Admin Panel  : ${YELLOW}${BOLD}${LIVE_URL}${ADMIN_PATH}${NC}"
+        echo -e "• Webhook QRIS     : ${GREEN}${BOLD}${LIVE_URL}${WEBHOOK_PATH}${NC}"
     else
         echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu jalankan kembali.${NC}"
     fi
 
-    echo -e "\n${BOLD}⚙️ DETAIL SISTEM:${NC}"
+    echo -e "\n${BOLD}DETAIL SISTEM:${NC}"
     echo -e "• Direktori Kerja  : ${WORKDIR}"
     echo -e "• Port Lokal       : ${PORT}"
     echo -e "=================================================================="
@@ -122,10 +158,22 @@ cmd_restart() {
     $SUDO systemctl restart telemarketbot
     if systemctl list-unit-files telemarketbot-tunnel.service 2>/dev/null | grep -q "telemarketbot-tunnel"; then
         echo -e "${BLUE}[*] Merestart Cloudflare Quick Tunnel...${NC}"
+        $SUDO rm -f "$WORKDIR/.current_tunnel_url"
         $SUDO systemctl restart telemarketbot-tunnel
+        echo -e "${BLUE}[*] Menunggu pembuatan URL live baru dari Cloudflare...${NC}"
+        for i in {1..15}; do
+            if [ -f "$WORKDIR/.current_tunnel_url" ]; then
+                NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+                if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
+                    break
+                fi
+            fi
+            sleep 1
+        done
+    else
+        sleep 2
     fi
     echo -e "${GREEN}[+] Selesai! Layanan telah di-restart.${NC}"
-    sleep 2
     cmd_status
 }
 
@@ -134,11 +182,24 @@ cmd_start() {
     $SUDO systemctl start telemarketbot
     $SUDO systemctl enable telemarketbot >/dev/null 2>&1 || true
     if systemctl list-unit-files telemarketbot-tunnel.service 2>/dev/null | grep -q "telemarketbot-tunnel"; then
+        echo -e "${BLUE}[*] Menjalankan Cloudflare Quick Tunnel...${NC}"
+        $SUDO rm -f "$WORKDIR/.current_tunnel_url"
         $SUDO systemctl start telemarketbot-tunnel
         $SUDO systemctl enable telemarketbot-tunnel >/dev/null 2>&1 || true
+        echo -e "${BLUE}[*] Menunggu pembuatan URL live dari Cloudflare...${NC}"
+        for i in {1..15}; do
+            if [ -f "$WORKDIR/.current_tunnel_url" ]; then
+                NEW_URL=$(cat "$WORKDIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
+                if [ -n "$NEW_URL" ] && [ "$NEW_URL" != "https://try.cloudflare.com" ]; then
+                    break
+                fi
+            fi
+            sleep 1
+        done
+    else
+        sleep 2
     fi
     echo -e "${GREEN}[+] TeleMarketBot & Tunnel berhasil dijalankan dan diaktifkan saat boot.${NC}"
-    sleep 2
     cmd_status
 }
 
@@ -159,12 +220,53 @@ cmd_url() {
     if [ -z "$LIVE_URL" ] && [ -f "$WORKDIR/.env" ]; then
         LIVE_URL=$(grep "^PUBLIC_URL=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
     fi
-    if [ -n "$LIVE_URL" ]; then
+    ADMIN_PATH="/admin"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_ADMIN_PATH=$(grep "^ADMIN_WEB_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_ADMIN_PATH" ]; then
+            ADMIN_PATH="$ENV_ADMIN_PATH"
+        fi
+    fi
+    case "$ADMIN_PATH" in
+        /*) ;;
+        *) ADMIN_PATH="/$ADMIN_PATH" ;;
+    esac
+
+    WEBHOOK_PATH="/webhook/dana"
+    if [ -f "$WORKDIR/.env" ]; then
+        ENV_WEBHOOK_PATH=$(grep "^DANA_WEBHOOK_PATH=" "$WORKDIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$ENV_WEBHOOK_PATH" ]; then
+            WEBHOOK_PATH="$ENV_WEBHOOK_PATH"
+        fi
+    fi
+    case "$WEBHOOK_PATH" in
+        /*) ;;
+        *) WEBHOOK_PATH="/$WEBHOOK_PATH" ;;
+    esac
+
+    if [ -n "$LIVE_URL" ] && [ "$LIVE_URL" != "https://try.cloudflare.com" ]; then
         echo -e "${BOLD}Public URL  :${NC} $LIVE_URL"
-        echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL/admin"
-        echo -e "${BOLD}Webhook QRIS:${NC} $LIVE_URL/webhook/dana"
+        echo -e "${BOLD}Admin Panel :${NC} $LIVE_URL${ADMIN_PATH}"
+        echo -e "${BOLD}Webhook QRIS:${NC} $LIVE_URL${WEBHOOK_PATH}"
     else
-        echo -e "${RED}URL belum tersedia. Cek dengan 'telemarketbot status'${NC}"
+        echo -e "${YELLOW}URL publik belum tersedia atau sedang proses generating. Tunggu beberapa detik lalu ulangi.${NC}"
+    fi
+}
+
+cmd_domain() {
+    if [ ! -f "$WORKDIR/scripts/cloudflare_setup.py" ]; then
+        echo -e "${RED}[!] Skrip cloudflare_setup.py tidak ditemukan di $WORKDIR/scripts.${NC}"
+        exit 1
+    fi
+    PYTHON_BIN="python3"
+    if [ -f "$WORKDIR/venv/bin/python" ]; then
+        PYTHON_BIN="$WORKDIR/venv/bin/python"
+    fi
+    $PYTHON_BIN "$WORKDIR/scripts/cloudflare_setup.py" menu
+    RET=$?
+    if [ $RET -eq 0 ]; then
+        echo -e "\n${BLUE}[*] Menerapkan konfigurasi mode domain/tunnel...${NC}"
+        cmd_restart
     fi
 }
 
@@ -177,7 +279,8 @@ cmd_help() {
     echo -e "  ${GREEN}restart${NC}   Restart server bot & cloudflare tunnel"
     echo -e "  ${GREEN}start${NC}     Jalankan bot & tunnel (sekaligus aktifkan auto-start saat reboot)"
     echo -e "  ${GREEN}stop${NC}      Hentikan server bot & tunnel"
-    echo -e "  ${GREEN}url${NC}       Cetak link live publik & panel admin saat ini"
+    echo -e "  ${GREEN}url${NC}       Cetak link live publik & panel admin saat ini
+  ${GREEN}domain${NC}    Pengaturan & beralih mode domain/tunnel (TryCloudflare <-> Domain Sendiri)"
     echo -e "  ${GREEN}help${NC}      Tampilkan bantuan ini"
 }
 
@@ -200,6 +303,9 @@ case "$1" in
         ;;
     url)
         cmd_url
+        ;;
+    domain|mode|tunnel)
+        cmd_domain
         ;;
     help|--help|-h|"")
         if [ -z "$1" ]; then
