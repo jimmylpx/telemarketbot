@@ -30,6 +30,13 @@ def _resolve_path(env_key: str, default_subpath: str) -> str:
     return str(p)
 
 
+def _clean_path(path_val: str, default: str = "") -> str:
+    val = (path_val or default).strip()
+    if not val.startswith("/"):
+        val = "/" + val
+    return val.rstrip("/") if val != "/" else "/"
+
+
 BOT_TOKEN: str = _get_env("TELEGRAM_BOT_TOKEN")
 ADMIN_USER_ID: int = _get_int_env("ADMIN_USER_ID", 0)
 ADMIN_CONTACT: str = _get_env("ADMIN_CONTACT", "").strip()
