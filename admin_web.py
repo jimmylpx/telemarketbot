@@ -506,7 +506,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nama Produk</label>
-                            <input type="text" name="name" placeholder="Contoh: Lisensi Windows 11 Pro Retail" required />
+                            <input type="text" name="name" placeholder="Contoh: Canva Premium" required />
                         </div>
                         <div class="form-group">
                             <label>Harga (Rupiah)</label>
