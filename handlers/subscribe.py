@@ -68,21 +68,27 @@ def get_subs_message_text(user_id: int) -> str:
 async def cmd_subs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handler /subs dan /subscribe: tampilkan menu langganan notifikasi stok."""
     user = update.effective_user
-    message = update.message
-    if user is None or message is None:
+    chat = update.effective_chat
+    if user is None or chat is None:
         return
 
     products = db.list_products()
     if not products:
-        await message.reply_text(
-            "Belum ada produk yang terdaftar di katalog saat ini.",
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="Belum ada produk yang terdaftar di katalog saat ini.",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
 
     text = get_subs_message_text(user.id)
     reply_markup = build_subs_keyboard(user.id)
-    await message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+    await context.bot.send_message(
+        chat_id=chat.id,
+        text=text,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN,
+    )
 
 
 async def handle_subs_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -92,6 +98,7 @@ async def handle_subs_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     user = update.effective_user
+    chat = update.effective_chat
     if user is None:
         await query.answer()
         return
@@ -110,7 +117,13 @@ async def handle_subs_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer()
         text = get_subs_message_text(user.id)
         reply_markup = build_subs_keyboard(user.id)
-        await query.message.reply_text(text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
+        if chat:
+            await context.bot.send_message(
+                chat_id=chat.id,
+                text=text,
+                reply_markup=reply_markup,
+                parse_mode=ParseMode.MARKDOWN,
+            )
         return
 
     if data == "catalog:open":

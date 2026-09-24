@@ -36,6 +36,7 @@ from telegram.ext import (
 
 import config
 import db
+from payments import klikqris
 from payments.delivery import get_stock_count, get_product_stock_path
 
 logger = logging.getLogger(__name__)
@@ -116,23 +117,25 @@ async def cmd_katalog(
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
     """List products with one inline-keyboard button per product."""
-    message = update.message
-    if message is None:
+    chat = update.effective_chat
+    if chat is None:
         return
 
     try:
         products = db.list_products()
     except Exception as exc:
         logger.exception("Gagal mengambil daftar produk: %s", exc)
-        await message.reply_text(
-            "Maaf, ada masalah saat memuat katalog. Coba lagi sebentar.",
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="Maaf, ada masalah saat memuat katalog. Coba lagi sebentar.",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
 
     if not products:
-        await message.reply_text(
-            "Belum ada produk. Tanyakan admin untuk menambahkan.",
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="Belum ada produk. Tanyakan admin untuk menambahkan.",
             parse_mode=ParseMode.MARKDOWN,
         )
         return
@@ -163,8 +166,9 @@ async def cmd_katalog(
     text_lines.append("━━━━━━━━━━━━━━━━━━━━━━")
     keyboard = InlineKeyboardMarkup(buttons)
     text = "\n".join(text_lines)
-    await message.reply_text(
-        text,
+    await context.bot.send_message(
+        chat_id=chat.id,
+        text=text,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=keyboard,
     )
@@ -480,97 +484,138 @@ async def handle_confirm(
         )
         return ConversationHandler.END
 
+    # 2) Coba buat QRIS via KlikQRIS (jika gateway aktif & terkonfigurasi)
+    qris_image_url: str | None = None
+    if klikqris.is_active():
+        try:
+            result = await klikqris.get().create_qris(
+                order_id=order_id,
+                amount=pending["total"],
+                keterangan=f"{product['name']} x{pending['quantity']}",
+            )
+            qris_data = result.get("data") or {}
+            qris_image_url = qris_data.get("qris_image")
+            db.set_order_qris_ref(order_id, order_id)
+            logger.info("QRIS created for %s", order_id)
+        except klikqris.KlikQRISError as e:
+            logger.warning("KlikQRIS gagal untuk %s: %s — fallback manual", order_id, e)
+        except Exception as e:
+            logger.exception("Unexpected error QRIS %s: %s", order_id, e)
+
     context.user_data.clear()
 
-    # 2) Siapkan info transfer & QRIS Dinamis DANA Bisnis
-    kode_unik = pending.get("kode_unik", 0)
-    base_total = pending.get("base_total", pending["total"])
-    final_total = pending["total"]
-
-    if kode_unik > 0:
-        unik_line = f"• Kode Verifikasi: *Rp {kode_unik}*\n"
-        auto_note = (
-            "⚡ *Verifikasi Otomatis:*\n"
-            "Sistem akan membaca mutasi masuk secara otomatis begitu transfer diterima.\n"
+    # 3) Kirim QRIS photo (jika ada) atau info transfer manual
+    if qris_image_url:
+        caption = (
+            f"✅ Order *#{order_id}* dibuat!\n"
+            "\n"
+            f"{product['name']} x{pending['quantity']}\n"
+            f"Total: Rp {format_rupiah(pending['total'])}\n"
+            "\n"
+            "💳 Scan QR di atas untuk bayar via QRIS.\n"
+            "Bot auto-verifikasi begitu pembayaran masuk."
         )
-    else:
-        unik_line = ""
-        auto_note = "Admin akan verifikasi setelah transfer masuk.\n"
-
-    text = (
-        f"✅ *Order #{order_id} Berhasil Dibuat!*\n"
-        "\n"
-        "📦 *Detail Pesanan:*\n"
-        f"• Produk: *{product['name']}* (x{pending['quantity']})\n"
-        f"• Subtotal: Rp {format_rupiah(base_total)}\n"
-        f"{unik_line}"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 *TOTAL TRANSFER: Rp {format_rupiah(final_total)}*\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n"
-        "\n"
-        f"📱 *Tujuan Pembayaran ({config.PAYMENT_BANK}):*\n"
-        f"Nomor: `{config.PAYMENT_NUMBER}`\n"
-        f"A/N: *{config.PAYMENT_NAME}*\n"
-        "\n"
-        "⚠️ *PENTING:*\n"
-        f"Harap transfer *TEPAT Rp {format_rupiah(final_total)}* (jangan dibulatkan agar terbaca otomatis).\n"
-        "\n"
-        f"{auto_note}"
-        f"⏰ Batas waktu pembayaran: *{config.ORDER_EXPIRE_MINUTES} menit*.\n"
-        "Cek status pesanan Anda di /myorders. Jika bot belum respon setelah transfer, ketik /cs untuk hubungi Admin."
-    )
-
-    # Generate QRIS Dinamis dari QRIS Statis DANA Bisnis
-    if config.QRIS_BASE_PAYLOAD:
         try:
-            from payments.qris_generator import generate_dynamic_qris, generate_qris_image_bytes
-            dynamic_payload = generate_dynamic_qris(config.QRIS_BASE_PAYLOAD, final_total)
-            qr_bytes = generate_qris_image_bytes(dynamic_payload)
+            await query.delete_message()
+        except Exception:
+            pass  # pesan sudah hilang / tidak bisa dihapus, abaikan
+        sent_msg = await context.bot.send_photo(
+            chat_id=user.id,
+            photo=qris_image_url,
+            caption=caption,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        if sent_msg:
+            db.set_order_message_id(order_id, sent_msg.message_id)
+    else:
+        kode_unik = pending.get("kode_unik", 0)
+        base_total = pending.get("base_total", pending["total"])
+        final_total = pending["total"]
 
-            caption = (
-                f"✅ *Order #{order_id} Siap Dibayar!*\n"
-                "\n"
-                "📦 *Detail Pesanan:*\n"
-                f"• Produk: *{product['name']}* (x{pending['quantity']})\n"
-                f"• Subtotal: Rp {format_rupiah(base_total)}\n"
-                f"{unik_line}"
-                "━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"💰 *TOTAL BAYAR: Rp {format_rupiah(final_total)}*\n"
-                "━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🏪 Merchant: *{config.MERCHANT_NAME}*\n"
-                "\n"
-                "📲 *Cara Pembayaran:*\n"
-                "1. Scan kode QRIS di atas dengan aplikasi *DANA*, GoPay, OVO, ShopeePay, BCA, atau m-Banking Anda.\n"
-                f"2. Nominal *Rp {format_rupiah(final_total)}* akan *otomatis terisi* di aplikasi Anda (tidak perlu ketik manual).\n"
-                "3. Selesaikan pembayaran.\n"
-                "\n"
-                f"{auto_note}"
-                f"⏰ Batas waktu pembayaran: *{config.ORDER_EXPIRE_MINUTES} menit*.\n"
-                "Cek status pesanan di /myorders."
+        if kode_unik > 0:
+            unik_line = f"• Kode Verifikasi: *Rp {kode_unik}*\n"
+            auto_note = (
+                "⚡ *Verifikasi Otomatis:*\n"
+                "Sistem akan membaca mutasi masuk secara otomatis begitu transfer diterima.\n"
             )
+        else:
+            unik_line = ""
+            auto_note = "Admin akan verifikasi setelah transfer masuk.\n"
 
+        text = (
+            f"✅ *Order #{order_id} Berhasil Dibuat!*\n"
+            "\n"
+            "📦 *Detail Pesanan:*\n"
+            f"• Produk: *{product['name']}* (x{pending['quantity']})\n"
+            f"• Subtotal: Rp {format_rupiah(base_total)}\n"
+            f"{unik_line}"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"💰 *TOTAL TRANSFER: Rp {format_rupiah(final_total)}*\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "\n"
+            f"📱 *Tujuan Pembayaran ({config.PAYMENT_BANK}):*\n"
+            f"Nomor: `{config.PAYMENT_NUMBER}`\n"
+            f"A/N: *{config.PAYMENT_NAME}*\n"
+            "\n"
+            "⚠️ *PENTING:*\n"
+            f"Harap transfer *TEPAT Rp {format_rupiah(final_total)}* (jangan dibulatkan agar terbaca otomatis).\n"
+            "\n"
+            f"{auto_note}"
+            f"⏰ Batas waktu pembayaran: *{config.ORDER_EXPIRE_MINUTES} menit*.\n"
+            "Cek status pesanan Anda di /myorders. Jika bot belum respon setelah transfer, ketik /cs untuk hubungi Admin."
+        )
+
+        # Generate QRIS Dinamis dari QRIS Statis DANA Bisnis
+        if config.QRIS_BASE_PAYLOAD:
             try:
-                await query.delete_message()
-            except Exception:
-                pass
+                from payments.qris_generator import generate_dynamic_qris, generate_qris_image_bytes
+                dynamic_payload = generate_dynamic_qris(config.QRIS_BASE_PAYLOAD, final_total)
+                qr_bytes = generate_qris_image_bytes(dynamic_payload)
 
-            sent_msg = await context.bot.send_photo(
-                chat_id=user.id,
-                photo=qr_bytes,
-                caption=caption,
-                parse_mode=ParseMode.MARKDOWN,
-            )
-            if sent_msg:
-                db.set_order_message_id(order_id, sent_msg.message_id)
-        except Exception as e:
-            logger.exception("Gagal generate QRIS dinamis: %s", e)
+                caption = (
+                    f"✅ *Order #{order_id} Siap Dibayar!*\n"
+                    "\n"
+                    "📦 *Detail Pesanan:*\n"
+                    f"• Produk: *{product['name']}* (x{pending['quantity']})\n"
+                    f"• Subtotal: Rp {format_rupiah(base_total)}\n"
+                    f"{unik_line}"
+                    "━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"💰 *TOTAL BAYAR: Rp {format_rupiah(final_total)}*\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"🏪 Merchant: *{config.MERCHANT_NAME}*\n"
+                    "\n"
+                    "📲 *Cara Pembayaran:*\n"
+                    "1. Scan kode QRIS di atas dengan aplikasi *DANA*, GoPay, OVO, ShopeePay, BCA, atau m-Banking Anda.\n"
+                    f"2. Nominal *Rp {format_rupiah(final_total)}* akan *otomatis terisi* di aplikasi Anda (tidak perlu ketik manual).\n"
+                    "3. Selesaikan pembayaran.\n"
+                    "\n"
+                    f"{auto_note}"
+                    f"⏰ Batas waktu pembayaran: *{config.ORDER_EXPIRE_MINUTES} menit*.\n"
+                    "Cek status pesanan di /myorders."
+                )
+
+                try:
+                    await query.delete_message()
+                except Exception:
+                    pass
+
+                sent_msg = await context.bot.send_photo(
+                    chat_id=user.id,
+                    photo=qr_bytes,
+                    caption=caption,
+                    parse_mode=ParseMode.MARKDOWN,
+                )
+                if sent_msg:
+                    db.set_order_message_id(order_id, sent_msg.message_id)
+            except Exception as e:
+                logger.exception("Gagal generate QRIS dinamis: %s", e)
+                sent_msg = await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
+                if sent_msg:
+                    db.set_order_message_id(order_id, sent_msg.message_id)
+        else:
             sent_msg = await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
             if sent_msg:
                 db.set_order_message_id(order_id, sent_msg.message_id)
-    else:
-        sent_msg = await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
-        if sent_msg:
-            db.set_order_message_id(order_id, sent_msg.message_id)
     return ConversationHandler.END
 
 
