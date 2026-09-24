@@ -89,12 +89,6 @@ def init_db(path: str) -> None:
         _conn.commit()
     except sqlite3.OperationalError:
         pass
-    try:
-        _conn.execute("UPDATE products SET product_type = 'office_cid', stock_file = '/home/servermax/bottele/office2021.txt' WHERE id = 2 AND (stock_file IS NULL OR stock_file = '')")
-        _conn.execute("UPDATE products SET product_type = 'regular' WHERE id = 1 AND (product_type IS NULL OR product_type = '')")
-        _conn.commit()
-    except Exception:
-        pass
     _conn.commit()
 
 

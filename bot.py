@@ -9,10 +9,6 @@ from telegram.ext import ApplicationBuilder
 import config
 import db
 from handlers import start, product, myorders, admin, subscribe
-try:
-    from handlers import cid
-except ImportError:
-    cid = None
 from jobs import poller
 from payments.webhook import create_webhook_app
 
@@ -36,8 +32,6 @@ async def on_startup(application):
             BotCommand("help", "Bantuan & panduan bot"),
             BotCommand("start", "Mulai bot / Menu utama"),
         ]
-        if cid is not None:
-            commands.insert(1, BotCommand("cid", "GetCID Office / Windows"))
         await application.bot.set_my_commands(commands)
     except Exception as exc:
         logger.warning("Gagal mendaftarkan menu commands: %s", exc)
@@ -77,7 +71,7 @@ def main():
     if not config.BOT_TOKEN:
         logger.warning(
             "⚠️ TELEGRAM_BOT_TOKEN belum diset di .env! "
-            "Bot Telegram tidak dapat terhubung, silakan isi token di /home/servermax/bottele/.env"
+            "Bot Telegram tidak dapat terhubung, silakan isi token di file .env"
         )
         # Jalankan standalone webhook server jika bot token belum diset
         loop = asyncio.new_event_loop()
@@ -100,8 +94,6 @@ def main():
     myorders.register(app)
     admin.register(app)
     subscribe.register(app)
-    if cid is not None:
-        cid.register(app)
 
     # Job queue
     if app.job_queue is not None:

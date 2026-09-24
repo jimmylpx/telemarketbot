@@ -156,12 +156,6 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
         s_path = get_product_stock_path(p)
         stk = get_stock_count(s_path)
         total_stock_count += stk
-        p_type = p.get("product_type") or ("office_cid" if "office" in p["name"].lower() else "regular")
-        type_badge = (
-            '<span class="badge badge-office">Office (Auto CID)</span>'
-            if p_type == "office_cid"
-            else '<span class="badge badge-reg">Regular Link/Key</span>'
-        )
         sub_cnt = db.count_subscribers_for_product(p['id'])
         sub_badge = f'<br/><small style="color:#38bdf8;">🔔 {sub_cnt} peminat</small>' if sub_cnt > 0 else ''
         stk_badge = (
@@ -177,14 +171,13 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                 <div class="p-name">{html.escape(p['name'])}</div>
                 <small class="text-muted">{html.escape(p.get('description') or '-')}</small>
             </td>
-            <td>{type_badge}</td>
             <td>Rp {p['price']:,}</td>
             <td>{stk_badge}{sub_badge}</td>
             <td><code class="file-path">{html.escape(s_path)}</code></td>
             <td class="action-btns">
                 <button class="btn btn-sm btn-info" onclick="openEditStock({p['id']}, '{html.escape(p['name'])}')">📝 Edit Stok TXT</button>
                 <button class="btn btn-sm btn-success" onclick="openRestock({p['id']}, '{html.escape(p['name'])}', {stk})">➕ Tambah</button>
-                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}', '{p_type}')">✏️ Edit</button>
+                <button class="btn btn-sm btn-secondary" onclick="openEdit({p['id']}, '{html.escape(p['name'])}', {p['price']}, '{html.escape(p.get('description') or '')}')">✏️ Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="confirmDelete({p['id']}, '{html.escape(p['name'])}')">🗑️</button>
             </td>
         </tr>
@@ -192,7 +185,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
 
         prod_options.append(f'<option value="{p["id"]}">#{p["id"]} - {html.escape(p["name"])} (Stok saat ini: {stk})</option>')
 
-    prod_rows_html = "".join(prod_rows) if prod_rows else '<tr><td colspan="7" style="text-align:center; padding:30px;">Belum ada produk.</td></tr>'
+    prod_rows_html = "".join(prod_rows) if prod_rows else '<tr><td colspan="6" style="text-align:center; padding:30px;">Belum ada produk.</td></tr>'
     prod_options_html = "".join(prod_options)
 
     order_rows = []
@@ -354,9 +347,6 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
-        }}
-        .badge-reg {{ background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; }}
-        .badge-office {{ background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #9333ea; }}
         .badge-stock-ok {{ background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }}
         .badge-stock-zero {{ background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }}
         .badge-pending {{ background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }}
@@ -492,7 +482,6 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                         <tr>
                             <th>ID</th>
                             <th>Nama Produk & Deskripsi</th>
-                            <th>Tipe Produk</th>
                             <th>Harga</th>
                             <th>Stok</th>
                             <th>File Stok</th>
@@ -524,18 +513,9 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tipe Produk</label>
-                            <select name="product_type">
-                                <option value="regular">Biasa / Regular (Link Jio, Akun, Lisensi standar)</option>
-                                <option value="office_cid">Office (Phone Key + Auto Token CID & Panduan Aktivasi)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Deskripsi Singkat (Opsional)</label>
-                            <input type="text" name="description" placeholder="Keterangan garansi, durasi, dll." />
-                        </div>
+                    <div class="form-group">
+                        <label>Deskripsi Singkat (Opsional)</label>
+                        <input type="text" name="description" placeholder="Keterangan garansi, durasi, dll." />
                     </div>
 
                     <div class="form-group">
@@ -672,21 +652,12 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
                     <label>Nama Produk</label>
                     <input type="text" name="name" id="editName" required />
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Harga (Rp)</label>
-                        <input type="number" name="price" id="editPrice" min="1000" required />
-                    </div>
-                    <div class="form-group">
-                        <label>Tipe Produk</label>
-                        <select name="product_type" id="editType">
-                            <option value="regular">Biasa / Regular</option>
-                            <option value="office_cid">Office (Auto CID)</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Harga (Rp)</label>
+                    <input type="number" name="price" id="editPrice" min="1000" required />
                 </div>
                 <div class="form-group">
-                    <label>Deskripsi</label>
+                    <label>Deskripsi (Opsional)</label>
                     <input type="text" name="description" id="editDesc" />
                 </div>
                 <div style="display:flex; justify-content: flex-end; gap:10px; margin-top:16px;">
@@ -768,12 +739,11 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             updateCounter('restockText', 'restockCounter');
         }}
 
-        function openEdit(pid, name, price, desc, ptype) {{
+        function openEdit(pid, name, price, desc) {{
             document.getElementById('editPid').value = pid;
             document.getElementById('editName').value = name;
             document.getElementById('editPrice').value = price;
             document.getElementById('editDesc').value = desc;
-            document.getElementById('editType').value = ptype;
             document.getElementById('editModal').classList.add('active');
         }}
 
@@ -941,7 +911,6 @@ async def handle_product_add(request: web.Request) -> web.Response:
     name = str(data.get("name", "")).strip()
     price_raw = str(data.get("price", "0")).strip()
     desc = str(data.get("description", "")).strip()
-    p_type = str(data.get("product_type", "regular")).strip()
     stock_raw = str(data.get("stock_lines", "")).strip()
 
     if not name:
@@ -955,7 +924,7 @@ async def handle_product_add(request: web.Request) -> web.Response:
         raise web.HTTPFound("/admin?err=Harga+produk+harus+berupa+angka+valid!")
 
     # 1. Tambah record ke DB
-    new_pid = db.add_product(name=name, price=price, description=desc, product_type=p_type)
+    new_pid = db.add_product(name=name, price=price, description=desc)
 
     # 2. Tentukan file stok dedicated
     stocks_dir = Path(config.STOCKS_DIR)
@@ -1031,12 +1000,11 @@ async def handle_product_edit(request: web.Request) -> web.Response:
 
     name = str(data.get("name", "")).strip()
     desc = str(data.get("description", "")).strip()
-    p_type = str(data.get("product_type", "regular")).strip()
 
     if not name:
         raise web.HTTPFound("/admin?err=Nama+produk+tidak+boleh+kosong!")
 
-    db.update_product(pid, name=name, price=price, description=desc, product_type=p_type)
+    db.update_product(pid, name=name, price=price, description=desc)
     logger.info("Admin mengedit produk #%d: '%s' (Rp %d)", pid, name, price)
 
     raise web.HTTPFound(f"/admin?msg=Produk+%23{pid}+berhasil+diperbarui!")

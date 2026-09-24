@@ -1,7 +1,7 @@
 """Modul Pengiriman Otomatis Produk (Auto-Delivery).
 
 Mengambil link/lisensi dari file stok secara atomik & aman dari race condition,
-membuat file ORD-xxxx.txt di folder orders/ (termasuk generate token CID untuk Office),
+membuat file ORD-xxxx.txt di folder orders/,
 lalu mengirimkan file dokumen tersebut langsung ke chat pembeli di Telegram
 serta mengirimkan laporan otomatis ke Telegram ID Admin.
 """
@@ -21,8 +21,6 @@ import config
 import db
 
 logger = logging.getLogger(__name__)
-
-OFFICE_STOCK_FILE_PATH = "/home/servermax/bottele/office2021.txt"
 
 
 def escape_markdown(text: str | None) -> str:
@@ -55,22 +53,9 @@ def get_product_stock_path(product: dict | None, product_name: str = "") -> str:
     """Tentukan path file stok berdasarkan produk."""
     if product and product.get("stock_file"):
         return product["stock_file"]
-    name = (product.get("name") if product else product_name) or ""
-    if "office" in name.lower():
-        return OFFICE_STOCK_FILE_PATH
-    if product and product.get("id") == 1:
-        return config.STOCK_FILE_PATH
     if product and product.get("id"):
         return f"{config.STOCKS_DIR}/stock_{product['id']}.txt"
     return config.STOCK_FILE_PATH
-
-
-def is_office_product(product: dict | None, product_name: str = "") -> bool:
-    """Cek apakah produk merupakan produk Office / Phone Key yang memerlukan token CID."""
-    if product and product.get("product_type") == "office_cid":
-        return True
-    name = (product.get("name") if product else product_name) or ""
-    return "office" in name.lower()
 
 
 def get_stock_count(stock_path: str | None = None) -> int:
@@ -163,29 +148,6 @@ def take_stock_links(stock_path: str, count: int = 1) -> tuple[list[str], int]:
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-async def generate_cid_token(value: int = 1) -> str | None:
-    """Generate CID token resmi via API cid.idlisensi.com."""
-    url = f"{config.CID_BASE_URL}/api_generate_token.php"
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    data = {"secret": "Paloco$6_cid_token_secret", "value": value}
-    try:
-        async with httpx.AsyncClient(timeout=15.0, headers=headers) as client:
-            resp = await client.post(url, data=data)
-            if resp.status_code == 200:
-                res = resp.json()
-                if res.get("success"):
-                    token = res.get("token")
-                    logger.info("Berhasil generate token CID: %s (value: %d)", token, value)
-                    return token
-                else:
-                    logger.error("Gagal generate token CID: %s", res)
-            else:
-                logger.error("Status error generate token CID: %s", resp.status_code)
-    except Exception as exc:
-        logger.error("Exception generate_cid_token: %s", exc)
-    return None
-
-
 def save_order_content(orders_dir: str, order_id: str, content: str) -> Path:
     """Simpan isi pesanan ke file orders/{order_id}.txt."""
     out_dir = Path(orders_dir)
@@ -196,7 +158,7 @@ def save_order_content(orders_dir: str, order_id: str, content: str) -> Path:
 
 
 async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
-    """Kirim produk (link atau Lisensi + Token CID) ke pembeli secara otomatis setelah lunas."""
+    """Kirim produk (link atau lisensi digital) ke pembeli secara otomatis setelah lunas."""
     order_id = order["id"]
     user_id = order["user_id"]
     username = order.get("username") or "Customer"
@@ -216,12 +178,11 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
         logger.warning("Order %s sudah pernah dikirimkan sebelumnya.", order_id)
         return True
 
-    # Tentukan path file stok & tipe produk
+    # Tentukan path file stok
     stock_path = get_product_stock_path(product, product_name)
-    is_office = is_office_product(product, product_name)
 
-    logger.info("Memproses delivery order %s: product='%s', stock_path='%s', is_office=%s, qty=%d",
-                order_id, product_name, stock_path, is_office, quantity)
+    logger.info("Memproses delivery order %s: product='%s', stock_path='%s', qty=%d",
+                order_id, product_name, stock_path, quantity)
 
     # Ambil baris lisensi/link dari stok
     taken_items, remaining_count = take_stock_links(stock_path, count=quantity)
@@ -262,37 +223,8 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
                 logger.error("Error kirim pesan stok habis: %s", e)
         return False
 
-    # Buat isi file order
-    if is_office:
-        # Format Lisensi & Token CID untuk Office beserta cara aktivasi
-        blocks = []
-        for lic in taken_items:
-            tok = await generate_cid_token(value=1)
-            tok_str = tok if tok else "Gagal generate token, hubungi admin"
-            block = (
-                f"Lisensi: {lic}\n"
-                f"Token: {tok_str}\n"
-                "Cara aktivivasi:\n"
-                "1. Input lisensi ke app office Windows\n"
-                "2. Ke menu file > account > activate product\n"
-                "3. Pilih Activate by phone, foto\n"
-                "4. Kembali ke bot tele dan ketik /cid dan upload foto IID tadi dan klik dapatkan CID\n"
-                "5. Ikuti petunjuk selanjutnya dari bot."
-            )
-            blocks.append(block)
-        file_text = "\n\n".join(blocks) + "\n"
-        hint_cid = (
-            "\n\n💡 *Cara Aktivasi Office:*\n"
-            "1. Input lisensi ke aplikasi Office Windows\n"
-            "2. Menu *File* > *Account* > *Activate Product*\n"
-            "3. Pilih *Activate by phone*, lalu foto layar Step 2\n"
-            "4. Ketik /cid di bot ini, masukkan Token, upload foto IID & klik *Dapatkan CID*\n"
-            "5. Ikuti petunjuk selanjutnya dari bot."
-        )
-    else:
-        # Format baris link biasa
-        file_text = "\n".join(taken_items) + "\n"
-        hint_cid = ""
+    # Buat isi file order (daftar lisensi/link/produk)
+    file_text = "\n".join(taken_items) + "\n"
 
     # Simpan file ke folder orders/
     save_order_content(config.ORDERS_DIR, order_id, file_text)
@@ -316,7 +248,7 @@ async def deliver_order_products(bot, order: dict, product_name: str) -> bool:
                 f"Order ID: *#{order_id}*\n"
                 f"Produk: *{escape_markdown(product_name)}* (x{quantity})\n\n"
                 f"📄 Rincian produk Anda telah disimpan dalam file *{order_id}.txt* di bawah.\n"
-                f"Silakan unduh dan buka file terlampir.{hint_cid}\n\n"
+                f"Silakan unduh dan buka file terlampir.\n\n"
                 f"Terima kasih telah berbelanja di *{escape_markdown(config.SHOP_NAME)}*!"
             )
             await safe_send_markdown(bot, user_id, buyer_text)
