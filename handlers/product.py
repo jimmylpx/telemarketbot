@@ -517,7 +517,7 @@ async def handle_confirm(
         "\n"
         f"{auto_note}"
         f"⏰ Batas waktu pembayaran: *{config.ORDER_EXPIRE_MINUTES} menit*.\n"
-        "Cek status pesanan Anda di /myorders."
+        "Cek status pesanan Anda di /myorders. Jika bot belum respon setelah transfer, ketik /cs untuk hubungi Admin."
     )
 
     # Generate QRIS Dinamis dari QRIS Statis DANA Bisnis

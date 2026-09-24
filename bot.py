@@ -20,6 +20,21 @@ _webhook_runner: web.AppRunner | None = None
 async def on_startup(application):
     """Callback saat bot mulai berjalan."""
     global _webhook_runner
+
+    # Daftarkan daftar command menu bot Telegram
+    try:
+        from telegram import BotCommand
+        commands = [
+            BotCommand("katalog", "Katalog produk & belanja"),
+            BotCommand("myorders", "Riwayat & status pesanan"),
+            BotCommand("cs", "Hubungi Admin / CS (Bantuan Pembayaran)"),
+            BotCommand("help", "Bantuan & info bot"),
+            BotCommand("start", "Menu utama bot"),
+        ]
+        await application.bot.set_my_commands(commands)
+    except Exception as exc:
+        logger.warning("Gagal mendaftarkan menu commands: %s", exc)
+
     if config.DANA_AUTO_CHECK:
         logger.info("Menjalankan DANA Webhook Server di %s:%d...", config.WEBHOOK_HOST, config.WEBHOOK_PORT)
         webapp = create_webhook_app(application.bot)

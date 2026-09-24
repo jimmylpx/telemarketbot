@@ -32,6 +32,7 @@ def _resolve_path(env_key: str, default_subpath: str) -> str:
 
 BOT_TOKEN: str = _get_env("TELEGRAM_BOT_TOKEN")
 ADMIN_USER_ID: int = _get_int_env("ADMIN_USER_ID", 0)
+ADMIN_CONTACT: str = _get_env("ADMIN_CONTACT", "").strip()
 
 SHOP_NAME: str = _get_env("SHOP_NAME", "Toko DANA Bot")
 DB_PATH: str = _resolve_path("DB_PATH", "data/bot.db")

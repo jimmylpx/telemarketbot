@@ -351,6 +351,23 @@ def upsert_user(user_id: int, username: str | None, first_name: str | None) -> N
     _conn.commit()
 
 
+
+def get_user(user_id: int) -> dict | None:
+    """Ambil data profil pengguna Telegram dari database."""
+    assert _conn is not None
+    row = _conn.execute(
+        "SELECT user_id, username, first_name, last_seen FROM users WHERE user_id = ?",
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "user_id": row["user_id"],
+        "username": row["username"],
+        "first_name": row["first_name"],
+        "last_seen": row["last_seen"],
+    }
+
 def get_all_user_ids() -> list[int]:
     assert _conn is not None
     rows = _conn.execute("SELECT user_id FROM users").fetchall()
