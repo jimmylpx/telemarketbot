@@ -121,11 +121,6 @@ async def cmd_cs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Jika Anda telah melakukan pembayaran/transfer tetapi *bot belum merespon* atau pesanan belum ditandai *Lunas*, silakan hubungi Admin kami:\n"
         "\n"
         f"👤 *Kontak Admin:* {username_display}\n"
-    )
-    if config.ADMIN_USER_ID:
-        text += f"🆔 *ID Admin:* `{config.ADMIN_USER_ID}`\n"
-
-    text += (
         "\n"
         "📋 *Format Pengaduan Pembayaran:*\n"
         "Agar kendala Anda dapat segera diproses, mohon kirimkan:\n"
