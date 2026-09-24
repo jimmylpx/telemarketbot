@@ -82,3 +82,25 @@ def generate_qris_image_bytes(qris_payload: str) -> io.BytesIO:
     bio.seek(0)
     return bio
 
+
+def extract_merchant_name(payload: str) -> str:
+    """Ekstrak nama merchant dari EMVCo Tag 59."""
+    if not payload:
+        return ""
+    p = payload.strip()
+    i = 0
+    while i < len(p):
+        tag = p[i:i+2]
+        if len(tag) < 2:
+            break
+        try:
+            length = int(p[i+2:i+4])
+        except ValueError:
+            break
+        val = p[i+4:i+4+length]
+        if tag == "59":
+            return val.strip()
+        i += 4 + length
+    return ""
+
+

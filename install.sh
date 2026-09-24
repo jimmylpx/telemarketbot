@@ -140,12 +140,39 @@ while [ -z "$INP_QRIS_PAYLOAD" ]; do
     read -rp "Masukkan QRIS_BASE_PAYLOAD: " INP_QRIS_PAYLOAD
 done
 
-# Nama Merchant
-read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS: ${NC}")" INP_MERCHANT_NAME
-while [ -z "$INP_MERCHANT_NAME" ]; do
-    echo -e "${RED}Nama Merchant tidak boleh kosong!${NC}"
-    read -rp "Masukkan Nama Merchant: " INP_MERCHANT_NAME
-done
+# Nama Merchant (Auto-detect Tag 59 dari Payload QRIS)
+DETECTED_MERCHANT=$(python3 -c "
+import sys
+p = sys.argv[1].strip()
+i = 0
+name = ''
+while i < len(p):
+    tag = p[i:i+2]
+    if len(tag) < 2:
+        break
+    try:
+        length = int(p[i+2:i+4])
+    except ValueError:
+        break
+    val = p[i+4:i+4+length]
+    if tag == '59':
+        name = val.strip()
+        break
+    i += 4 + length
+print(name)
+" "$INP_QRIS_PAYLOAD" 2>/dev/null || true)
+
+if [ -n "$DETECTED_MERCHANT" ]; then
+    echo -e "${GREEN}[+] Terdeteksi Nama Merchant dari QRIS: ${BOLD}${DETECTED_MERCHANT}${NC}"
+    read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS (Default: ${DETECTED_MERCHANT}): ${NC}")" INP_MERCHANT_NAME
+    INP_MERCHANT_NAME=${INP_MERCHANT_NAME:-$DETECTED_MERCHANT}
+else
+    read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS: ${NC}")" INP_MERCHANT_NAME
+    while [ -z "$INP_MERCHANT_NAME" ]; do
+        echo -e "${RED}Nama Merchant tidak boleh kosong!${NC}"
+        read -rp "Masukkan Nama Merchant: " INP_MERCHANT_NAME
+    done
+fi
 
 # Password Admin Web Panel
 RANDOM_PASS=$(openssl rand -base64 6 | tr -dc 'a-zA-Z0-9')

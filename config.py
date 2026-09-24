@@ -52,7 +52,30 @@ QRIS_BASE_PAYLOAD: str = _get_env(
     "QRIS_BASE_PAYLOAD",
     "00020101021126610014COM.GO-JEK.WWW01189360091436257905280210G6257905280303UMI51440014ID.CO.QRIS.WWW0215ID10266017203150303UMI5204899953033605802ID5909IDLisensi6014KONAWE SELATAN61059387062070703A0163043042"
 )
-MERCHANT_NAME: str = _get_env("MERCHANT_NAME", "IDLisensi")
+
+
+def _extract_qris_merchant(payload: str) -> str:
+    if not payload:
+        return ""
+    p = payload.strip()
+    i = 0
+    while i < len(p):
+        tag = p[i:i+2]
+        if len(tag) < 2:
+            break
+        try:
+            length = int(p[i+2:i+4])
+        except ValueError:
+            break
+        val = p[i+4:i+4+length]
+        if tag == "59":
+            return val.strip()
+        i += 4 + length
+    return ""
+
+
+_detected_merchant: str = _extract_qris_merchant(QRIS_BASE_PAYLOAD)
+MERCHANT_NAME: str = _get_env("MERCHANT_NAME", _detected_merchant or "IDLisensi")
 
 # Fallback info pembayaran manual jika diperlukan
 PAYMENT_BANK: str = _get_env("PAYMENT_BANK", "QRIS (Semua E-Wallet & Bank)")
