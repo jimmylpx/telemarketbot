@@ -270,7 +270,7 @@ def set_order_qris_ref(order_id: str, qris_ref: str) -> bool:
 def get_pending_qris_orders() -> list[dict]:
     assert _conn is not None
     rows = _conn.execute(
-        "SELECT * FROM orders WHERE status = 'pending' AND qris_ref IS NOT NULL AND qris_ref NOT LIKE 'DANA-%' ORDER BY created_at ASC LIMIT 50"
+        "SELECT * FROM orders WHERE status = 'pending' AND qris_ref IS NOT NULL ORDER BY created_at ASC LIMIT 50"
     ).fetchall()
     return [_row_to_dict(r) for r in rows]
 

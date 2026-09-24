@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Installer Otomatis: Telegram Auto Order Bot & DANA Bisnis Gateway
+# Installer Otomatis: Telegram Auto Order Bot & QRIS Gateway
 # Mendukung Debian, Ubuntu, CentOS, Rocky Linux, AlmaLinux
 # Termasuk Cloudflare Quick Tunnel (try.cloudflare.com)
 # ==============================================================================
@@ -21,7 +21,7 @@ INSTALL_DIR="telemarketbot"
 
 echo -e "${CYAN}${BOLD}"
 echo "=================================================================="
-echo "    INSTALLER TELEGRAM AUTO ORDER & DANA BISNIS GATEWAY"
+echo "         🚀 INSTALLER TELEGRAM AUTO ORDER & QRIS GATEWAY"
 echo "           Dengan Cloudflare Quick Tunnel (try.cloudflare.com)"
 echo "=================================================================="
 echo -e "${NC}"
@@ -121,27 +121,21 @@ while [ -z "$INP_ADMIN_ID" ]; do
 done
 
 # Nama Toko
-read -rp "$(echo -e "${BOLD}3. Masukkan Nama Toko Anda: ${NC}")" INP_SHOP_NAME
-while [ -z "$INP_SHOP_NAME" ]; do
-    echo -e "${RED}Nama Toko tidak boleh kosong!${NC}"
-    read -rp "Masukkan Nama Toko Anda: " INP_SHOP_NAME
-done
+read -rp "$(echo -e "${BOLD}3. Nama Toko (Default: IDLisensi): ${NC}")" INP_SHOP_NAME
+INP_SHOP_NAME=${INP_SHOP_NAME:-IDLisensi}
 
-# Payload QRIS DANA Bisnis
-echo -e "\n${YELLOW}Petunjuk QRIS DANA Bisnis:${NC}"
-echo "Jika Anda belum tahu string payload QRIS Anda, buka:"
-echo -e "  ${CYAN}https://qris-dana-converter.vercel.app/${NC}"
-echo "Cukup upload gambar QRIS statis DANA Bisnis Anda untuk mendapatkan payload secara instan,"
-echo "atau scan gambar QRIS Anda menggunakan aplikasi QR Scanner (format EMVCo diawali 000201010211...)."
-read -rp "$(echo -e "${BOLD}4. Masukkan QRIS_BASE_PAYLOAD DANA Bisnis: ${NC}")" INP_QRIS_PAYLOAD
+# Payload QRIS Merchant
+echo -e "\n${YELLOW}Petunjuk QRIS Merchant:${NC}"
+echo "Scan QRIS statis merchant Anda (GoPay, DANA Bisnis, Bank, dsb) menggunakan aplikasi scanner barcode,"
+echo "lalu copy teks hasilnya (format EMVCo, diawali 000201010211...)"
+read -rp "$(echo -e "${BOLD}4. Masukkan QRIS_BASE_PAYLOAD Merchant: ${NC}")" INP_QRIS_PAYLOAD
 while [ -z "$INP_QRIS_PAYLOAD" ]; do
     echo -e "${RED}QRIS_BASE_PAYLOAD tidak boleh kosong!${NC}"
-    echo -e "Dapatkan payload dengan upload gambar QRIS ke: ${CYAN}https://qris-dana-converter.vercel.app/${NC}"
     read -rp "Masukkan QRIS_BASE_PAYLOAD: " INP_QRIS_PAYLOAD
 done
 
 # Nama Merchant
-read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS DANA (Sesuai aplikasi DANA): ${NC}")" INP_MERCHANT_NAME
+read -rp "$(echo -e "${BOLD}5. Masukkan Nama Merchant QRIS: ${NC}")" INP_MERCHANT_NAME
 while [ -z "$INP_MERCHANT_NAME" ]; do
     echo -e "${RED}Nama Merchant tidak boleh kosong!${NC}"
     read -rp "Masukkan Nama Merchant: " INP_MERCHANT_NAME
@@ -149,62 +143,46 @@ done
 
 # Password Admin Web Panel
 RANDOM_PASS=$(openssl rand -base64 6 | tr -dc 'a-zA-Z0-9')
-read -rp "$(echo -e "${BOLD}6. Password Admin Web Panel (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
+read -rp "$(echo -e "${BOLD}6. Password Admin Web Panel /admin (Default: $RANDOM_PASS): ${NC}")" INP_ADMIN_PASSWORD
 INP_ADMIN_PASSWORD=${INP_ADMIN_PASSWORD:-$RANDOM_PASS}
 
-# Path URL Admin Web Panel
-read -rp "$(echo -e "${BOLD}7. Path URL Admin Web Panel (Default: /admin): ${NC}")" INP_ADMIN_PATH
-INP_ADMIN_PATH=${INP_ADMIN_PATH:-/admin}
-case "$INP_ADMIN_PATH" in
-    /*) ;;
-    *) INP_ADMIN_PATH="/$INP_ADMIN_PATH" ;;
-esac
-
-# Path URL Webhook DANA
-read -rp "$(echo -e "${BOLD}8. Path URL Webhook DANA (Default: /webhook/dana): ${NC}")" INP_WEBHOOK_PATH
-INP_WEBHOOK_PATH=${INP_WEBHOOK_PATH:-/webhook/dana}
-case "$INP_WEBHOOK_PATH" in
-    /*) ;;
-    *) INP_WEBHOOK_PATH="/$INP_WEBHOOK_PATH" ;;
-esac
-
-# Port Webhook Lokal
-read -rp "$(echo -e "${BOLD}9. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
+# Port Webhook
+read -rp "$(echo -e "${BOLD}7. Port Webhook Lokal (Default: 8085): ${NC}")" INP_WEBHOOK_PORT
 INP_WEBHOOK_PORT=${INP_WEBHOOK_PORT:-8085}
 
 # Webhook Secret Token
 RANDOM_SECRET=$(openssl rand -hex 12)
-read -rp "$(echo -e "${BOLD}10. Secret Token Webhook (Default: $RANDOM_SECRET): ${NC}")" INP_WEBHOOK_SECRET
+read -rp "$(echo -e "${BOLD}8. Secret Token Webhook (Default: $RANDOM_SECRET): ${NC}")" INP_WEBHOOK_SECRET
 INP_WEBHOOK_SECRET=${INP_WEBHOOK_SECRET:-$RANDOM_SECRET}
 
 # Pilihan Tunnel
-echo -e "\n${BOLD}11. Pilih Metode Akses Publik / Online Webhook:${NC}"
-echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Gratis, Otomatis, Tanpa Domain]"
-echo "  2) Cloudflare Named Tunnel dengan Domain Sendiri (dash.cloudflare.com)"
+echo -e "\n${BOLD}9. Pilih Metode Akses Publik / Online Webhook:${NC}"
+echo "  1) Cloudflare Quick Tunnel (try.cloudflare.com) [Rekomendasi - Gratis, Tanpa Domain]"
+echo "  2) Custom Domain / Reverse Proxy Sendiri (Pangolin, Nginx, dll.)"
 read -rp "Pilihan Anda (1/2, default: 1): " INP_TUNNEL_CHOICE
 INP_TUNNEL_CHOICE=${INP_TUNNEL_CHOICE:-1}
 
 USE_CF="true"
 INP_PUBLIC_URL="https://try.cloudflare.com"
-TUNNEL_MODE="trycloudflare"
 
 if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
-    TUNNEL_MODE="custom_domain"
+    USE_CF="false"
+    read -rp "Masukkan URL Publik Anda (contoh: https://toko.domainanda.com): " INP_PUBLIC_URL
 fi
 
 # 6. Tulis file .env
 echo -e "\n${BLUE}[*] Menyimpan konfigurasi ke .env...${NC}"
 cat <<EOF > "$PROJECT_DIR/.env"
-# Konfigurasi Bot Telegram & DANA Bisnis Gateway
+# Konfigurasi Bot Telegram & QRIS Gateway
 TELEGRAM_BOT_TOKEN=${INP_BOT_TOKEN}
 ADMIN_USER_ID=${INP_ADMIN_ID}
 SHOP_NAME=${INP_SHOP_NAME}
 
-# QRIS DANA Bisnis
-DANA_AUTO_CHECK=true
+# QRIS Dinamis Otomatis
+QRIS_AUTO_CHECK=true
 QRIS_BASE_PAYLOAD=${INP_QRIS_PAYLOAD}
 MERCHANT_NAME=${INP_MERCHANT_NAME}
-PAYMENT_BANK=QRIS DANA Bisnis
+PAYMENT_BANK=QRIS (Semua E-Wallet & Bank)
 PAYMENT_NUMBER=QRIS Dinamis
 PAYMENT_NAME=${INP_MERCHANT_NAME}
 
@@ -212,9 +190,9 @@ PAYMENT_NAME=${INP_MERCHANT_NAME}
 WEBHOOK_HOST=0.0.0.0
 WEBHOOK_PORT=${INP_WEBHOOK_PORT}
 WEBHOOK_SECRET=${INP_WEBHOOK_SECRET}
+WEBHOOK_PATH=/webhook/dana
 PUBLIC_URL=${INP_PUBLIC_URL}
 USE_CLOUDFLARE_TUNNEL=${USE_CF}
-TUNNEL_MODE=${TUNNEL_MODE}
 ORDER_EXPIRE_MINUTES=30
 
 # Web Admin Panel (/admin)
@@ -250,18 +228,13 @@ echo -e "\n${BLUE}[*] Menginisialisasi Database SQLite...${NC}"
 "$PROJECT_DIR/venv/bin/python" -c "import db; db.init_db('data/bot.db')"
 echo -e "${GREEN}[+] Database SQLite siap: data/bot.db${NC}"
 
-if [ "$INP_TUNNEL_CHOICE" = "2" ]; then
-    echo -e "\n${BLUE}[*] Memulai konfigurasi Cloudflare Named Tunnel dengan Domain Sendiri...${NC}"
-    "$PROJECT_DIR/venv/bin/python" "$PROJECT_DIR/scripts/cloudflare_setup.py" setup
-fi
-
 # 10. Konfigurasi Systemd Service
 echo -e "\n${BLUE}[*] Mengonfigurasi systemd service...${NC}"
 
 # A. telemarketbot.service
 $SUDO bash -c "cat <<EOF > /etc/systemd/system/telemarketbot.service
 [Unit]
-Description=TeleMarketBot — Telegram Auto Order Bot & DANA Webhook Server
+Description=TeleMarketBot — Telegram Auto Order Bot & QRIS Webhook Server
 After=network.target network-online.target
 Wants=network-online.target
 
@@ -326,40 +299,21 @@ $SUDO cp "$PROJECT_DIR/bin/telemarketbot" /usr/local/bin/telemarketbot
 $SUDO chmod +x /usr/local/bin/telemarketbot
 echo -e "${GREEN}[+] Perintah CLI 'telemarketbot' berhasil dipasang di /usr/local/bin/telemarketbot${NC}"
 
-LIVE_TUNNEL_URL=""
-if [ "$USE_CF" = "true" ]; then
-    echo -e "\n${BLUE}[*] Menghubungkan ke Cloudflare Quick Tunnel (menunggu link publik)...${NC}"
-    for i in {1..15}; do
-        if [ -f "$PROJECT_DIR/.current_tunnel_url" ]; then
-            LIVE_TUNNEL_URL=$(cat "$PROJECT_DIR/.current_tunnel_url" 2>/dev/null | tr -d '[:space:]')
-            if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
-                break
-            fi
-        fi
-        sleep 1
-    done
-fi
-
 echo -e "\n${GREEN}${BOLD}=================================================================="
-echo "                   INSTALASI SELESAI & BERHASIL!"
+echo "                   INSTALASI SELESAI & BERHASIL! 🚀"
 echo "==================================================================${NC}"
 echo -e "Bot Telegram: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
 if [ "$USE_CF" = "true" ]; then
     echo -e "Cloudflare Tunnel: ${GREEN}AKTIF${NC} (Auto-start saat boot: ENABLED)"
+    echo -e "${YELLOW}URL Quick Tunnel sedang dibuat dan otomatis dikirimkan ke Telegram Admin Anda!${NC}"
 fi
 echo -e "\n${BOLD}Informasi Akses & Kredensial:${NC}"
-if [ -n "$LIVE_TUNNEL_URL" ] && [ "$LIVE_TUNNEL_URL" != "https://try.cloudflare.com" ]; then
-    echo -e "• Public URL        : ${CYAN}${BOLD}${LIVE_TUNNEL_URL}${NC}"
-    echo -e "• Web Admin Panel   : ${YELLOW}${BOLD}${LIVE_TUNNEL_URL}${INP_ADMIN_PATH}${NC}"
-    echo -e "• Webhook DANA      : ${GREEN}${BOLD}${LIVE_TUNNEL_URL}${INP_WEBHOOK_PATH}${NC}"
-else
-    echo -e "• Web Admin Panel   : ${CYAN}${INP_ADMIN_PATH}${NC}"
-    echo -e "• Webhook DANA Path : ${CYAN}${INP_WEBHOOK_PATH}${NC}"
-fi
+echo -e "• Web Admin Panel   : ${CYAN}/admin${NC}"
 echo -e "• Password Web Admin: ${YELLOW}${INP_ADMIN_PASSWORD}${NC}"
+echo -e "• Webhook QRIS Path : ${CYAN}/webhook/dana${NC}"
 echo -e "• Webhook Secret    : ${YELLOW}${INP_WEBHOOK_SECRET}${NC}"
 
-echo -e "\n${BOLD}Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"
+echo -e "\n${BOLD}🚀 Perintah Pengelolaan (Bisa diketik dari mana saja):${NC}"
 echo -e "• Cek Status & URL live : ${CYAN}telemarketbot status${NC}"
 echo -e "• Pantau Log Transaksi  : ${CYAN}telemarketbot log${NC} (Ctrl+C hanya keluar log)"
 echo -e "• Restart Server        : ${CYAN}telemarketbot restart${NC}"

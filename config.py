@@ -41,7 +41,7 @@ BOT_TOKEN: str = _get_env("TELEGRAM_BOT_TOKEN")
 ADMIN_USER_ID: int = _get_int_env("ADMIN_USER_ID", 0)
 ADMIN_CONTACT: str = _get_env("ADMIN_CONTACT", "").strip()
 
-SHOP_NAME: str = _get_env("SHOP_NAME", "Toko DANA Bot")
+SHOP_NAME: str = _get_env("SHOP_NAME", "IDLisensi")
 DB_PATH: str = _resolve_path("DB_PATH", "data/bot.db")
 
 # QRIS Dinamis Otomatis (GoPay Merchant, DANA Bisnis, Bank, dsb)
