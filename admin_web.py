@@ -347,6 +347,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
             border-radius: 6px;
             font-size: 11px;
             font-weight: 700;
+        }}
         .badge-stock-ok {{ background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }}
         .badge-stock-zero {{ background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }}
         .badge-pending {{ background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }}
@@ -429,7 +430,7 @@ def render_dashboard(products: list[dict], stats: dict, orders: list[dict], aler
     <div class="container">
         <header>
             <div class="brand">
-                <h1>🤖 {config.SHOP_NAME}</h1>
+                <h1>{config.SHOP_NAME}</h1>
                 <span>ADMIN PANEL</span>
             </div>
             <a href="/admin/logout" class="logout-btn">Keluar (Logout)</a>
