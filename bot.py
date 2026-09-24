@@ -8,7 +8,11 @@ from telegram.ext import ApplicationBuilder
 
 import config
 import db
-from handlers import start, product, myorders, admin, subscribe, cid
+from handlers import start, product, myorders, admin, subscribe
+try:
+    from handlers import cid
+except ImportError:
+    cid = None
 from jobs import poller
 from payments.dana_webhook import create_webhook_app
 
@@ -26,13 +30,14 @@ async def on_startup(application):
         from telegram import BotCommand
         commands = [
             BotCommand("katalog", "Katalog produk & belanja"),
-            BotCommand("cid", "GetCID Office / Windows"),
             BotCommand("subs", "Notifikasi restock produk"),
             BotCommand("myorders", "Riwayat & status pesanan"),
             BotCommand("cs", "Hubungi Admin / CS (Bantuan Pembayaran)"),
             BotCommand("help", "Bantuan & panduan bot"),
             BotCommand("start", "Mulai bot / Menu utama"),
         ]
+        if cid is not None:
+            commands.insert(1, BotCommand("cid", "GetCID Office / Windows"))
         await application.bot.set_my_commands(commands)
     except Exception as exc:
         logger.warning("Gagal mendaftarkan menu commands: %s", exc)
@@ -95,7 +100,8 @@ def main():
     myorders.register(app)
     admin.register(app)
     subscribe.register(app)
-    cid.register(app)
+    if cid is not None:
+        cid.register(app)
 
     # Job queue
     if app.job_queue is not None:
